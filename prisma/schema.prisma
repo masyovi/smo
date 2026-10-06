@@ -1,0 +1,97 @@
+// SMO (Save My Office) - Building Damage Report System
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  name       String
+  password   String
+  role       String   @default("USER") // USER | TECHNICIAN | ADMIN
+  phone      String?
+  department String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reports         Report[]       @relation("ReporterReports")
+  assignedReports Report[]       @relation("AssigneeReports")
+  history         ReportHistory[]
+
+  @@index([role])
+}
+
+model Location {
+  id          String   @id @default(cuid())
+  name        String
+  building    String
+  floor       String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reports Report[]
+
+  @@index([building])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String?
+  createdAt DateTime @default(now())
+
+  reports Report[]
+}
+
+model Report {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  status       String   @default("PENDING") // PENDING | IN_PROGRESS | RESOLVED | CLOSED
+  priority     String   @default("MEDIUM")  // LOW | MEDIUM | HIGH | URGENT
+  imageUrl     String?
+  resolution   String?
+  locationId   String
+  categoryId   String
+  reporterId   String
+  assigneeId   String?
+  createdAt    DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  location Location       @relation(fields: [locationId], references: [id])
+  category Category       @relation(fields: [categoryId], references: [id])
+  reporter User          @relation("ReporterReports", fields: [reporterId], references: [id])
+  assignee User?         @relation("AssigneeReports", fields: [assigneeId], references: [id])
+  history  ReportHistory[]
+
+  @@index([status])
+  @@index([priority])
+  @@index([locationId])
+  @@index([categoryId])
+  @@index([reporterId])
+  @@index([assigneeId])
+}
+
+model ReportHistory {
+  id            String   @id @default(cuid())
+  reportId      String
+  userId        String
+  action        String // CREATED | STATUS_CHANGED | PRIORITY_CHANGED | ASSIGNED | COMMENTED | RESOLVED | REOPENED
+  message       String?
+  previousValue String?
+  newValue      String?
+  createdAt     DateTime @default(now())
+
+  report Report @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([reportId])
+}
