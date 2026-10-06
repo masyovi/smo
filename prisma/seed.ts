@@ -1,11 +1,27 @@
 /* eslint-disable */
 import { PrismaClient } from '@prisma/client'
+import { PrismaLibSQL } from '@prisma/adapter-libsql'
 import { scryptSync, randomBytes } from 'crypto'
 
-const SMO_DB_URL = 'file:/home/z/my-project/db/smoid.db'
-const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.SMO_DATABASE_URL || SMO_DB_URL } },
-})
+const TURSO_URL = process.env.TURSO_DATABASE_URL
+
+function createPrismaClient() {
+  if (TURSO_URL && TURSO_URL.startsWith('libsql://')) {
+    // Pass { url, authToken } directly to the adapter (NOT a pre-created
+    // libsql client) — otherwise the Prisma engine throws URL_INVALID.
+    const url = TURSO_URL.split('?')[0]
+    const authToken = TURSO_URL.match(/[?&]authToken=([^&]*)/)?.[1] || undefined
+    const adapter = new PrismaLibSQL({ url, authToken })
+    return new PrismaClient({ adapter })
+  }
+  return new PrismaClient({
+    datasources: {
+      db: { url: process.env.DATABASE_URL || 'file:/home/z/my-project/db/smoid.db' },
+    },
+  })
+}
+
+const prisma = createPrismaClient()
 
 // Password hashing using Node's built-in scrypt
 function hashPassword(password: string): string {
