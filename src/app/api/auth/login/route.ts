@@ -29,9 +29,11 @@ export async function POST(req: NextRequest) {
       id: user.id,
       email: user.email,
       role: user.role,
+      name: user.name,
     })
     await setSessionCookie(token)
     return NextResponse.json({
+      token,
       user: {
         id: user.id,
         email: user.email,

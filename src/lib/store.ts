@@ -29,8 +29,10 @@ type SessionUser = {
 interface AppState {
   // auth
   user: SessionUser | null
+  authToken: string | null
   authLoading: boolean
   setUser: (u: SessionUser | null) => void
+  setAuthToken: (t: string | null) => void
   setAuthLoading: (b: boolean) => void
   logout: () => void
 
@@ -56,10 +58,12 @@ export const useAppStore = create<AppState>()(
   persist(
     (set, get) => ({
       user: null,
+      authToken: null,
       authLoading: true,
       setUser: (u) => set({ user: u }),
+      setAuthToken: (t) => set({ authToken: t }),
       setAuthLoading: (b) => set({ authLoading: b }),
-      logout: () => set({ user: null, view: 'dashboard', activeReportId: null }),
+      logout: () => set({ user: null, authToken: null, view: 'dashboard', activeReportId: null }),
 
       view: 'dashboard',
       activeReportId: null,
@@ -83,6 +87,7 @@ export const useAppStore = create<AppState>()(
         statusFilter: state.statusFilter,
         priorityFilter: state.priorityFilter,
         view: state.view,
+        authToken: state.authToken,
       }),
       // Migrate persisted state from older versions.
       onRehydrateStorage: () => (state) => {

@@ -435,3 +435,27 @@ Stage Summary:
 - Teknisi can create/edit/delete schedules and mark them complete (advances to the next occurrence per the recurrence rule). Guests view everything read-only.
 - Dashboard has a reminder card showing due/upcoming counts.
 - All data persists to the live Turso database.
+
+---
+Task ID: 9
+Agent: main
+Task: Fix "gagal memuat coba lagi" — all API calls returning 401 after login
+
+Work Log:
+- Root cause: The session cookie was set with `SameSite=Lax; Secure=false` because the Caddy gateway on port 81 serves HTTP (not HTTPS), so the `X-Forwarded-Proto: https` detection in `setSessionCookie` set `isHttps=false`. In the user's preview panel (a cross-site/sandboxed iframe context), browsers block `SameSite=Lax` cookies — so login succeeded (POST /api/auth/login 200) but every subsequent authenticated GET (notifications, stats, reports, etc.) returned 401, which the client rendered as "gagal memuat coba lagi".
+- Fix: switched auth to a **Bearer token in the Authorization header** (stored in localStorage), which is never subject to SameSite/iframe restrictions:
+  1. `src/lib/auth.ts` — added `readSessionToken()` that reads from the `Authorization: Bearer <token>` header first (via `headers()`), then falls back to the cookie. `getSession()` uses it, so token-header auth works in all contexts.
+  2. `src/lib/store.ts` — added `authToken` to the persisted state (`partialize`) + `setAuthToken` setter. The token now persists in localStorage under the `smo-app-store` key.
+  3. `src/lib/api.ts` — `apiFetch` reads the token directly from localStorage (synchronous, no React cycle dependency) and attaches `Authorization: Bearer <token>` to every request. On 401, it calls `useAppStore.getState().logout()` to clear the local auth state and return the user to the login screen.
+  4. `src/app/api/auth/login/route.ts` + `src/app/api/auth/guest/route.ts` — now return `{ token, user }` so the client can store the token.
+  5. `src/components/app/login-screen.tsx` — `onSubmit` and `onGuestLogin` call `setAuthToken(res.token)` alongside `setUser(res.user)`.
+  6. `src/app/page.tsx` — unchanged; its `/api/auth/me` call now auto-attaches the Bearer token via apiFetch, so the session resumes on reload.
+- The cookie is still set as a fallback (works in same-site contexts like the agent-browser), but the Bearer header is the primary mechanism and works in the cross-site preview iframe.
+- Verified end-to-end via curl (login → token → /api/auth/me, /api/notifications, /api/reports all 200 with `Authorization: Bearer`) and via Agent Browser:
+  - Teknisi login → dashboard "Halo, Budi" + maintenance reminder. Token in localStorage: YES. Clicked through Laporan, Jadwal, Catatan, Lokasi, Kategori, Pengguna — ALL loaded successfully (no "gagal memuat").
+  - Guest login → dashboard "Halo, Tamu" + Mode tamu. Token in localStorage: YES. Clicked Riwayat + Catatan — ALL loaded successfully.
+- dev.log now shows 200s for all API calls (no more 401 spam). `bun run lint` passes (0 errors).
+
+Stage Summary:
+- The "gagal memuat coba lagi" issue is fully fixed. The app now uses Bearer-token auth (localStorage + Authorization header) which works in the cross-site preview iframe context that broke cookie-based auth.
+- Users who logged in before the fix will need to log in once more (the old cookie-only session is obsolete); the new login stores a token that persists across reloads.

@@ -93,9 +93,21 @@ export function verifySessionToken(token: string): SessionUser | null {
 }
 
 // ---------- Server-side helpers (for API routes) ----------
-export async function getSession(): Promise<SessionUser | null> {
+// Reads the session token from the `Authorization: Bearer <token>` header
+// first (works in cross-site / sandboxed iframe contexts where cookies are
+// blocked), then falls back to the session cookie (same-origin contexts).
+async function readSessionToken(): Promise<string | null> {
+  const h = await headers()
+  const authHeader = h.get('authorization') || h.get('Authorization') || ''
+  if (authHeader.toLowerCase().startsWith('bearer ')) {
+    return authHeader.slice(7).trim()
+  }
   const store = await cookies()
-  const token = store.get(SESSION_COOKIE)?.value
+  return store.get(SESSION_COOKIE)?.value || null
+}
+
+export async function getSession(): Promise<SessionUser | null> {
+  const token = await readSessionToken()
   if (!token) return null
   const sessionUser = verifySessionToken(token)
   if (!sessionUser) return null

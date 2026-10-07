@@ -41,6 +41,7 @@ const DEMO_ACCOUNTS = [
 
 export function LoginScreen() {
   const setUser = useAppStore((s) => s.setUser)
+  const setAuthToken = useAppStore((s) => s.setAuthToken)
   const setAuthLoading = useAppStore((s) => s.setAuthLoading)
   const [submitting, setSubmitting] = React.useState(false)
   const [guestLoading, setGuestLoading] = React.useState(false)
@@ -56,10 +57,11 @@ export function LoginScreen() {
     setFormErr(null)
     setSubmitting(true)
     try {
-      const res = await apiFetch<{ user: any }>('/api/auth/login', {
+      const res = await apiFetch<{ token: string; user: any }>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(values),
       })
+      setAuthToken(res.token)
       setUser(res.user)
       toast.success('Berhasil masuk', { description: `Selamat datang, ${res.user.name}` })
     } catch (e) {
@@ -75,9 +77,10 @@ export function LoginScreen() {
     setFormErr(null)
     setGuestLoading(true)
     try {
-      const res = await apiFetch<{ user: any }>('/api/auth/guest', {
+      const res = await apiFetch<{ token: string; user: any }>('/api/auth/guest', {
         method: 'POST',
       })
+      setAuthToken(res.token)
       setUser(res.user)
       setAuthLoading(false)
       toast.success('Masuk sebagai tamu', {
