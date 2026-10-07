@@ -719,3 +719,18 @@ Stage Summary:
   3. Mobile topbar brand → the image.
   4. Login screen brand (desktop left panel + mobile top) → the image.
 - The ShieldCheck/Building2 generic icons used for non-brand purposes (building/location, password button) are unchanged.
+
+---
+Task ID: 19
+Agent: main
+Task: Fix the unwanted horizontal line above the Edit/Hapus buttons on schedule cards
+
+Work Log:
+- Root cause: in `src/components/app/views/schedules-view.tsx`, the `ScheduleCard` rendered a `<Separator className="my-0" />` (a full-width horizontal line) between the schedule info and the action button row (Tandai Selesai / Edit / Hapus) for technicians. This was the "garis horizontal" the user saw.
+- Removed the `<Separator className="my-0" />` element. Replaced it with a clean top margin (`mt-3`) on the button row `<div>`, so the buttons sit directly below the content with normal spacing — no line.
+- Removed the now-unused `import { Separator } from '@/components/ui/separator'` line.
+- Verified via Agent Browser (logged in as teknisi, opened the Jadwal view): `[role="separator"], hr, [data-orientation="horizontal"]` count on the page = **0**. VLM: "the layout is clean now — there is no unwanted horizontal line/separator above the buttons. The buttons are positioned directly below the content with just normal spacing." ✅
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean (HTTP 200).
+
+Stage Summary:
+- The unwanted horizontal line above the Tandai Selesai / Edit / Hapus buttons on the schedule cards is gone. The buttons now flow directly below the card content with clean spacing.

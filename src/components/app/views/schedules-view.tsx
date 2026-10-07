@@ -23,7 +23,6 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
 import {
   Dialog,
   DialogContent,
@@ -499,8 +498,7 @@ function ScheduleCard({
 
         {canManage && (
           <>
-            <Separator className="my-0" />
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
               <Button
                 size="sm"
                 variant="default"
