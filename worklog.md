@@ -459,3 +459,32 @@ Work Log:
 Stage Summary:
 - The "gagal memuat coba lagi" issue is fully fixed. The app now uses Bearer-token auth (localStorage + Authorization header) which works in the cross-site preview iframe context that broke cookie-based auth.
 - Users who logged in before the fix will need to log in once more (the old cookie-only session is obsolete); the new login stores a token that persists across reloads.
+
+---
+Task ID: 10
+Agent: main
+Task: Replace plain white background with a sophisticated decorative background
+
+Work Log:
+- Root cause of "putih polos": the app used a flat solid `bg-background` (near-white) with no visual depth.
+- Created `src/components/app/decorative-background.tsx` — a fixed, non-interactive layer (`fixed inset-0 -z-10`) with:
+  1. A vertical base gradient (`from-background via-background to-muted/60`) for depth.
+  2. Four soft glow orbs (emerald/teal/sky, blurred 120-150px) positioned in corners + center — the brand-colored ambient lighting. Light mode uses 25% opacity so the color reads on a pale base; dark mode 18-25% so it's vivid but not overpowering.
+  3. A faint dot-grid pattern (`radial-gradient` at 1px, 22px spacing) — 7% opacity dots in light mode, 5% in dark mode — for a tech/blueprint texture.
+  4. A subtle top sheen line for a "glass" feel.
+- Wired it into `src/app/layout.tsx` (added `<DecorativeBackground />` as the first child of `QueryProvider`, removed `bg-background` from the body so the decorative layer shows through).
+- Made the content surfaces transparent so the decorative background is visible in the gaps:
+  - `src/components/app/app-shell.tsx` — root div `bg-background` → transparent.
+  - `src/app/page.tsx` — loading screen `bg-background` → transparent.
+  - `src/components/app/login-screen.tsx` — form panel `bg-background` → transparent.
+  - Sidebar (`bg-sidebar`) and cards (`bg-card`) keep their opaque surfaces so content stays readable.
+- Verified visually via z-ai vision CLI (VLM) on screenshots:
+  - **Dark mode**: "sophisticated and modern... deep dark green/black canvas, subtle radial glow orbs (top-right), faint technical dot grid, glassmorphic cards that float... enterprise-grade, similar to Vercel/Linear".
+  - **Light mode** (after increasing orb opacity from 15→25%): "visible soft emerald/teal glow circles, faint dot grid pattern, layered depth, not plain white".
+  - **Login screen**: "split-screen design, emerald gradient left, decorative dot-grid + soft gradient right — sophisticated".
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean.
+
+Stage Summary:
+- The app now has a polished, sophisticated background in both light & dark mode: a subtle vertical gradient + soft emerald/teal glow orbs + a faint dot-grid pattern + a top sheen.
+- Cards and sidebar remain opaque and readable; the decorative background shows through the content area's gaps and behind transparent surfaces.
+- The login screen's form panel now also shows the decorative background (dot grid + gradient) instead of plain white.

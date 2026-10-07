@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { DecorativeBackground } from "@/components/app/decorative-background";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased text-foreground`}
       >
         <ThemeProvider
           attribute="class"
@@ -50,6 +51,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <QueryProvider>
+            <DecorativeBackground />
             {children}
             <Toaster />
             <SonnerToaster position="top-center" richColors />

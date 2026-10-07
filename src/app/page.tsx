@@ -36,7 +36,7 @@ export default function Home() {
 
   if (authLoading) {
     return (
-      <div className="bg-background flex min-h-screen flex-col items-center justify-center gap-3 p-6">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6">
         <div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20">
           <ShieldCheck className="size-6" />
         </div>

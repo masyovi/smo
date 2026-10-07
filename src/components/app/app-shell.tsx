@@ -21,7 +21,7 @@ export function AppShell() {
   const view = useAppStore((s) => s.view)
 
   return (
-    <div className="bg-background flex min-h-screen w-full flex-col">
+    <div className="flex min-h-screen w-full flex-col">
       <div className="flex flex-1">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">

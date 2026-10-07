@@ -151,7 +151,7 @@ export function LoginScreen() {
       </div>
 
       {/* Right — login form */}
-      <div className="flex min-h-screen items-center justify-center bg-background p-6">
+      <div className="flex min-h-screen items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="mb-6 flex flex-col items-center text-center lg:hidden">
             <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20">
