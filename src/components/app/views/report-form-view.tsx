@@ -9,14 +9,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   ArrowLeft,
-  Image as ImageIcon,
   Loader2,
   MapPin,
   Plus,
   Save,
   Tag,
-  Upload,
-  X,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -82,63 +79,21 @@ export function ReportFormView() {
     },
   })
 
-  const [imageFile, setImageFile] = React.useState<File | null>(null)
-  const [imagePreview, setImagePreview] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
 
   // Safety net: guests should never reach this view (the "Buat Laporan" CTA is
   // hidden for them in the sidebar/dashboard). If a guest somehow lands here
   // (e.g. persisted view state), show the Access Denied card instead.
-  // IMPORTANT: all React Hooks are called above unconditionally, so this
-  // early return is safe.
   if (user?.role === 'GUEST') {
     return <AccessDenied />
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0]
-    if (!f) {
-      setImageFile(null)
-      setImagePreview(null)
-      return
-    }
-    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(f.type)) {
-      toast.error('Tipe file tidak didukung', { description: 'Hanya JPG, PNG, WebP, GIF' })
-      return
-    }
-    if (f.size > 5 * 1024 * 1024) {
-      toast.error('Ukuran file terlalu besar', { description: 'Maks 5MB' })
-      return
-    }
-    setImageFile(f)
-    setImagePreview(URL.createObjectURL(f))
-  }
-
-  function clearImage() {
-    setImageFile(null)
-    if (imagePreview) URL.revokeObjectURL(imagePreview)
-    setImagePreview(null)
   }
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true)
     try {
-      let imageUrl: string | null = null
-      if (imageFile) {
-        const fd = new FormData()
-        fd.append('file', imageFile)
-        const res = await fetch('/api/upload', { method: 'POST', body: fd })
-        if (!res.ok) {
-          const j = await res.json().catch(() => ({}))
-          throw new ApiError(j.error || 'Gagal upload gambar', res.status)
-        }
-        const up = (await res.json()) as { url: string }
-        imageUrl = up.url
-      }
-
       const created = await apiFetch<{ id: string }>('/api/reports', {
         method: 'POST',
-        body: JSON.stringify({ ...values, imageUrl }),
+        body: JSON.stringify(values),
       })
       toast.success('Laporan dibuat', {
         description: 'Laporan berhasil dikirim dan akan ditindaklanjuti.',
@@ -290,50 +245,6 @@ export function ReportFormView() {
                   </label>
                 ))}
               </RadioGroup>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="image">Lampiran Gambar (opsional)</Label>
-              <p className="text-muted-foreground text-xs">
-                Sertakan foto kerusakan agar lebih mudah ditindaklanjuti. JPG/PNG/WebP, maks 5MB.
-              </p>
-              {imagePreview ? (
-                <div className="relative inline-block overflow-hidden rounded-lg border">
-                  <img
-                    src={imagePreview}
-                    alt="Pratinjau"
-                    className="max-h-56 w-full max-w-xs object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={clearImage}
-                    className="absolute right-2 top-2 rounded-full bg-background/80 p-1 text-foreground shadow-sm hover:bg-background"
-                    aria-label="Hapus gambar"
-                  >
-                    <X className="size-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <label
-                  htmlFor="image"
-                  className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed bg-muted/30 p-6 text-center transition-colors hover:bg-muted/50"
-                >
-                  <div className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
-                    <Upload className="size-5" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Klik untuk unggah</p>
-                    <p className="text-muted-foreground text-xs">atau seret file ke sini</p>
-                  </div>
-                  <input
-                    id="image"
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp,image/gif"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </label>
-              )}
             </div>
 
             <div className="flex flex-col gap-2 border-t pt-4 sm:flex-row sm:justify-end">

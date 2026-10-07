@@ -650,3 +650,24 @@ Stage Summary:
 - The mobile top bar now shows the SMO brand (logo + "SMO" + "Save My Office") so the app is identified at the top.
 - Desktop is unchanged (sidebar with brand + labeled nav, topbar with page title).
 - Accessibility preserved via aria-labels / title attributes on the icon-only buttons.
+
+---
+Task ID: 16
+Agent: main
+Task: Remove the image attachment ("Lampiran Gambar") from the Create Report form
+
+Work Log:
+- Removed the entire "Lampiran Gambar (opsional)" JSX section from `src/components/app/views/report-form-view.tsx` — the label, the description text, the image preview block, the dashed drop-zone with the hidden `<input type="file">`, and the clear-image button.
+- Cleaned up the now-unused state + handlers:
+  - `const [imageFile, setImageFile] = React.useState<File | null>(null)`
+  - `const [imagePreview, setImagePreview] = React.useState<string | null>(null)`
+  - `handleFileChange(e)` (file-type/size validation + preview)
+  - `clearImage()`
+- Simplified `onSubmit`: removed the `if (imageFile) { FormData → POST /api/upload → imageUrl }` block; the report is now created with `JSON.stringify(values)` directly (no `imageUrl`). The `ApiError` import is kept (still used in the catch block).
+- Removed the unused Lucide imports: `Image as ImageIcon`, `Upload`, `X`. Kept `Label` (still used by other form fields).
+- The `/api/upload` route and the `imageUrl` DB column are left intact (out of scope — the user only asked to remove the form field). Existing reports that previously had an image still display it in the report detail view; new reports simply won't have one.
+- Verified via Agent Browser (logged in as teknisi, opened the "Buat Laporan" form): the form now contains only Judul Laporan → Deskripsi → Lokasi → Kategori → Prioritas → Batal/Kirim Laporan. `document.body.innerText.includes('Lampiran Gambar')` = false. ✅
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean (HTTP 200).
+
+Stage Summary:
+- The image attachment / "Lampiran Gambar" field is fully removed from the Create Report form. The form is now simpler (5 fields: Judul, Deskripsi, Lokasi, Kategori, Prioritas) with no file upload UI.
