@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+import { getSession, isReadOnly } from '@/lib/auth'
 import type { ReportStatus, ReportPriority } from '@/lib/types'
 
 // Shared select for relations to keep payloads lean and avoid leaking password
@@ -74,13 +74,15 @@ export async function GET(req: NextRequest) {
 
   const where: Record<string, unknown> = { AND: [] as unknown[] }
 
-  // Role-based scoping
+  // Role-based scoping:
+  // - GUEST (read-only) and TECHNICIAN/ADMIN (managers) see ALL reports
+  // - USER sees only their own reports (as reporter or assignee)
   if (user.role === 'USER') {
     ;(where.AND as unknown[]).push({
       OR: [{ reporterId: user.id }, { assigneeId: user.id }],
     })
   }
-  // TECHNICIAN and ADMIN can see all
+  // GUEST, TECHNICIAN, ADMIN can see all reports
 
   if (statusParam !== 'ALL') {
     ;(where.AND as unknown[]).push({ status: statusParam as ReportStatus })
@@ -121,6 +123,16 @@ export async function POST(req: NextRequest) {
   const user = await getSession()
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+  // Guests are read-only viewers — they cannot create reports.
+  if (isReadOnly(user)) {
+    return NextResponse.json(
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
   }
   const body = await req.json()
   const title = (body?.title ?? '').toString().trim()

@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import {
   ClipboardList,
   ChevronRight,
+  Eye,
   Filter,
   Plus,
   RotateCcw,
@@ -15,6 +16,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -119,8 +121,17 @@ export function ReportsView() {
   const total = data?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
+  const isGuest = user?.role === 'GUEST'
+  const isManager = user?.role === 'ADMIN' || user?.role === 'TECHNICIAN'
+
   const hasFilters =
     statusFilter !== 'ALL' || priorityFilter !== 'ALL' || searchQuery.trim() !== ''
+
+  const description = isGuest
+    ? 'Telusuri semua laporan kerusakan (mode tamu).'
+    : isManager
+      ? 'Kelola semua laporan yang masuk.'
+      : 'Lihat dan pantau laporan Anda.'
 
   return (
     <motion.div
@@ -134,18 +145,25 @@ export function ReportsView() {
           <h2 className="text-lg font-semibold tracking-tight sm:text-xl">
             Laporan Kerusakan
           </h2>
-          <p className="text-muted-foreground text-sm">
-            {user?.role === 'ADMIN'
-              ? 'Kelola semua laporan yang masuk.'
-              : user?.role === 'TECHNICIAN'
-                ? 'Laporan yang perlu Anda kerjakan atau terkait.'
-                : 'Lihat dan pantau laporan Anda.'}
-          </p>
+          <p className="text-muted-foreground text-sm">{description}</p>
         </div>
-        <Button onClick={openNewReport} className="self-start sm:self-auto">
-          <Plus className="size-4" />
-          Buat Laporan
-        </Button>
+        <div className="flex items-center gap-2">
+          {isGuest && (
+            <Badge
+              variant="outline"
+              className="bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-900"
+            >
+              <Eye className="size-3" />
+              Mode tamu
+            </Badge>
+          )}
+          {!isGuest && (
+            <Button onClick={openNewReport} className="self-start sm:self-auto">
+              <Plus className="size-4" />
+              Buat Laporan
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Filter bar */}
@@ -240,7 +258,9 @@ export function ReportsView() {
           description={
             hasFilters
               ? 'Coba ubah filter atau kata kunci pencarian Anda.'
-              : 'Buat laporan pertama Anda sekarang.'
+              : isGuest
+                ? 'Belum ada laporan yang dapat ditelusuri.'
+                : 'Buat laporan pertama Anda sekarang.'
           }
           action={
             hasFilters
@@ -251,7 +271,9 @@ export function ReportsView() {
                     setSearchInput('')
                   },
                 }
-              : { label: 'Buat Laporan', onClick: openNewReport }
+              : isGuest
+                ? undefined
+                : { label: 'Buat Laporan', onClick: openNewReport }
           }
         />
       ) : (
@@ -379,10 +401,12 @@ export function ReportsView() {
         </>
       )}
 
-      {/* Desktop floating FAB */}
-      <div className="hidden md:block">
-        <FloatingFab onClick={openNewReport} />
-      </div>
+      {/* Desktop floating FAB — hidden for guests (read-only) */}
+      {!isGuest && (
+        <div className="hidden md:block">
+          <FloatingFab onClick={openNewReport} />
+        </div>
+      )}
     </motion.div>
   )
 }

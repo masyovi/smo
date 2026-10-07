@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+import { getSession, canManageAll, isReadOnly } from '@/lib/auth'
 
 // GET /api/categories
 export async function GET() {
@@ -8,6 +8,7 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+  // Guests (read-only) and managers (TECH/ADMIN) can list categories.
   const data = await db.category.findMany({
     orderBy: { name: 'asc' },
   })
@@ -20,9 +21,20 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  // Guests are read-only viewers — they cannot create categories.
+  if (isReadOnly(user)) {
     return NextResponse.json(
-      { error: 'Hanya admin yang dapat menambah kategori' },
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
+  }
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage everything.
+  if (!canManageAll(user)) {
+    return NextResponse.json(
+      { error: 'Hanya teknisi yang dapat menambah kategori' },
       { status: 403 }
     )
   }

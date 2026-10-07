@@ -176,3 +176,116 @@ Stage Summary:
 - All CRUD flows verified against Turso via the browser.
 - Demo accounts (unchanged): admin@smo.com/admin123, teknisi@smo.com/teknisi123, user@smo.com/user123.
 - The local `db/smoid.db` is kept as an offline fallback (lib/db.ts falls back to it only if `TURSO_DATABASE_URL` is unset or doesn't start with `libsql://`).
+
+---
+Task ID: 6
+Agent: full-stack-developer
+Task: Implement new SMO role policy — only Teknisi can manage everything, plus a read-only "Masuk sebagai Tamu" (guest) login mode
+
+Work Log:
+- Read `worklog.md` and the foundation lib files (`auth.ts`, `types.ts`, `store.ts`) plus the existing API routes and UI components to understand the current state. Confirmed `GUEST_USER`, `isReadOnly`, `canManageAll`, `createGuestSessionToken`, and `src/app/api/auth/guest/route.ts` were already provided by prior work.
+- **Part 1 — API guest guards (mutations)**: Added an `isReadOnly(session)` 403 guard at the top of every mutation handler. When the existing `user.role !== 'ADMIN'` admin-only check was clearly a relic of the old policy (and would have prevented the technician from managing — required by the new policy per the done checklist), I updated it to `!canManageAll(user)` (TECH + ADMIN) so Teknisi keeps full management while guests are blocked at the door.
+  - `src/app/api/reports/route.ts` → POST: guest guard added.
+  - `src/app/api/reports/[id]/route.ts` → PATCH: guest guard added. DELETE: guest guard + `!canManageAll` (so Teknisi can delete).
+  - `src/app/api/reports/[id]/comments/route.ts` → POST: guest guard added (also prevents a FK violation since `userId='guest'` doesn't exist in the User table).
+  - `src/app/api/locations/route.ts` → POST: guest guard + `!canManageAll`.
+  - `src/app/api/locations/[id]/route.ts` → PATCH, DELETE: guest guard + `!canManageAll`.
+  - `src/app/api/categories/route.ts` → POST: guest guard + `!canManageAll`.
+  - `src/app/api/categories/[id]/route.ts` → PATCH, DELETE: guest guard + `!canManageAll`.
+  - `src/app/api/users/route.ts` → POST: guest guard + `!canManageAll`.
+  - `src/app/api/users/[id]/route.ts` → GET, PATCH, DELETE: guest guard (or `isReadOnly || !canManageAll`) + canManageAll.
+  - `src/app/api/profile/route.ts` → PATCH: guest guard added.
+  - Note: the spec listed `src/app/api/upload/route.ts`, but no such file exists in the project (`src/app/api/` only has auth/, categories/, locations/, profile/, reports/, stats/, users/, route.ts). The upload feature is invoked from `report-form-view.tsx` via `fetch('/api/upload', ...)` and will simply 404 — guests cannot reach the form anyway (hidden via the AccessDenied safety net), so this is a no-op for the new role policy.
+- **Part 2 — GET routes (guest-aware scoping)**:
+  - `src/app/api/reports/route.ts` GET: kept the `user.role === 'USER'` own-only scope; guests fall through and see ALL reports (read-only browsing).
+  - `src/app/api/reports/[id]/route.ts` GET: USER can only view own; GUEST and TECH/ADMIN can view ANY report (read-only).
+  - `src/app/api/locations/route.ts` GET + `src/app/api/categories/route.ts` GET: no role restriction (guests can list, read-only).
+  - `src/app/api/stats/route.ts` GET: existing logic already scopes `scopedWhere = {}` for non-USER roles → guests see aggregate stats across all reports.
+  - `src/app/api/users/route.ts` GET: keep TECH-only management view — guests (and any non-manager) get 403.
+  - `src/app/api/profile/route.ts` GET: for guests, returns the `GUEST_USER` object (no DB lookup since guests have no DB record); for non-guests, unchanged.
+- **Part 3 — Login screen**: Added a full-width secondary "Masuk sebagai Tamu" button (`variant="outline"`, `UserRound` icon) below the primary "Masuk" submit, separated by an "atau" divider. The button calls `POST /api/auth/guest` (no body), then `setUser(res.user)` + `setAuthLoading(false)` to navigate to the dashboard. Loading state + toast on error. Demo accounts panel now only shows the Teknisi account (`teknisi@smo.com / teknisi123`); admin and karyawan entries were removed per the spec. Added a small "Login sebagai tamu untuk melihat tanpa mengelola." note below the guest button.
+- **Part 4 — UI hide-all-mutations-for-guests**:
+  - Created `src/components/app/access-denied.tsx` — a reusable "Akses Ditolak" centered card with `ShieldAlert` icon, title, message, and a "Kembali ke Beranda" button (calls `goDashboard()`). Reused by locations/categories/users/report-form views.
+  - `src/components/app/sidebar.tsx`: NAV `roles: ['ADMIN']` updated to `roles: ['ADMIN', 'TECHNICIAN']` for Lokasi/Kategori/Pengguna so Teknisi sees them; Profile is `roles: ['ADMIN', 'TECHNICIAN', 'USER']` so it's hidden for guests. For guests: "Buat Laporan" CTA is replaced with a "Mode tamu — hanya melihat" dashed badge; an "Akun Tamu" badge is shown in the sidebar footer.
+  - `src/components/app/mobile-nav.tsx`: guests get a 4-cell bottom nav (Beranda, Laporan, Keluar, Menu) — no FAB+, no Profil cell. The Sheet drawer hides management items for guests and shows a "Keluar" button at the bottom for everyone.
+  - `src/components/app/topbar.tsx`: user-menu dropdown shows "Tamu" name + role badge + a disabled "Mode tamu — hanya melihat" item (and a working "Keluar"). "Profil Saya" link is hidden for guests.
+  - `src/components/app/views/dashboard-view.tsx`: greeting uses `user.name`. "Buat Laporan" CTA hidden for guests. "X laporan butuh penugasan" banner now keys off `isManager` (TECH+ADMIN) instead of just ADMIN — so it's hidden for guests. Added a subtle teal "Mode tamu — Anda hanya dapat melihat" notice card near the top for guests. Recent reports empty-state action hidden for guests.
+  - `src/components/app/views/reports-view.tsx`: "Buat Laporan" button + floating FAB hidden for guests. Added a "Mode tamu" badge in the header. Empty-state "Buat Laporan" action hidden for guests.
+  - `src/components/app/views/report-detail-view.tsx`: ActionPanel hidden for guests (now accepts a `canAssign` prop instead of `useAppStore.getState().user?.role === 'ADMIN'`). OwnerEditPanel hidden for guests. CommentComposer hidden for guests. Delete button hidden for guests. Added a "Mode tamu — hanya melihat" badge near the top of the detail. The hero (badges/title), info tiles, description, resolution, image, and the full history timeline all remain visible (read-only). Also updated `canAssign`/`canDelete` to `isManager` so Teknisi can assign and delete (was ADMIN-only).
+  - `src/components/app/views/locations-view.tsx`, `categories-view.tsx`, `users-view.tsx`: replaced the old `isAdmin` admin-only check with `canManage = role === 'ADMIN' || role === 'TECHNICIAN'`; on failure, render `<AccessDenied />` (covers guests AND regular users).
+  - `src/components/app/views/profile-view.tsx`: rewrote as a single component that branches on `isGuest`. For guests: simple read-only card with `UserRound` avatar, "Tamu" name, role badge, "tamu@smo.local" email, an "Akun tamu tidak memiliki informasi profil yang dapat diedit." hint, and a prominent full-width "Keluar" button. For non-guests: existing editable account-info form + change-password form (unchanged).
+  - `src/components/app/views/report-form-view.tsx`: added a safety-net `<AccessDenied />` render if a guest somehow lands here via persisted view state. Carefully structured so all React hooks (`useAppStore`, `useQuery` x2, `useForm`, `useState` x3) are called unconditionally before the early return — this required moving the guard below the hook calls (initial naive placement caused a `react-hooks/rules-of-hooks` lint error; fixed).
+- **Part 5 — Store helpers**: added `useIsGuest = () => useAppStore(s => s.user?.role === 'GUEST')` and `useCanManageAll = () => useAppStore(s => s.user?.role === 'TECHNICIAN' || s.user?.role === 'ADMIN')` selectors to `src/lib/store.ts` for client-side role checks (so client components don't import the server-only `isReadOnly`).
+- Lint: `bun run lint` → 0 errors, 1 pre-existing warning in `prisma/seed.ts` (Task 1 leftover). Dev log shows clean recompiles and 200/403 responses as expected after every edit; no runtime or compile errors.
+- End-to-end verified via curl + Agent Browser:
+  - API (curl): guest gets 200 on GET /api/reports (sees all 12), GET /api/locations, GET /api/categories, GET /api/stats, GET /api/profile (returns GUEST_USER), GET /api/auth/me (returns GUEST_USER). Guest gets 403 on POST /api/reports, PATCH /api/reports/[id], DELETE /api/reports/[id], POST /api/reports/[id]/comments, POST /api/locations, POST /api/categories, POST /api/users, PATCH /api/profile, GET /api/users. Teknisi (teknisi@smo.com/teknisi123) can POST /api/reports, PATCH status, POST comments, DELETE reports, POST/PATCH/DELETE /api/locations, POST /api/categories — full management confirmed.
+  - UI (agent-browser): login screen renders "Masuk sebagai Tamu" button + demo panel with only Teknisi. Clicking the guest button logs in as Tamu → dashboard shows "Mode tamu — Anda hanya dapat melihat" notice card, sidebar shows only Beranda + Laporan with "Akun Tamu" footer badge, mobile bottom nav is Beranda/Laporan/Keluar/Menu (no FAB, no Profil), no "Buat Laporan" CTA, no admin banner. Opening a report detail shows hero + info tiles + description + full history timeline, with NO ActionPanel, NO comment composer, NO delete button, NO owner-edit dialog, and a "Mode tamu — hanya melihat" badge at the top. Forcing navigation to locations/users/report-new via persisted view state renders the AccessDenied card with "Kembali ke Beranda" CTA. The profile view for guests renders a simple read-only card with a "Keluar" button. Logging out and back in as teknisi@smo.com restores full management UI (sidebar shows all nav items, "Buat Laporan" CTA returns, "5 laporan butuh penugasan" banner is now visible to Teknisi too).
+
+Stage Summary:
+- New SMO role policy is live: **only Teknisi can manage everything** (create/edit/delete reports, change status/priority, assign technicians, manage locations/categories/users, view everything). ADMIN is treated equivalently for backward-compat (no admin accounts in the demo anymore). **Guest = read-only viewer** who can browse the dashboard, all reports, and full history timelines but cannot create, edit, delete, comment, or upload. Guest login is a one-click "Masuk sebagai Tamu" button (no credentials).
+- Files created:
+  - `src/components/app/access-denied.tsx`
+- Files modified:
+  - `src/lib/store.ts` (added `useIsGuest` and `useCanManageAll` selectors)
+  - `src/app/api/reports/route.ts` (POST guest guard; GET scope comment update)
+  - `src/app/api/reports/[id]/route.ts` (PATCH guest guard; DELETE guest guard + `canManageAll`)
+  - `src/app/api/reports/[id]/comments/route.ts` (POST guest guard)
+  - `src/app/api/locations/route.ts` (POST guest guard + `canManageAll`)
+  - `src/app/api/locations/[id]/route.ts` (PATCH/DELETE guest guard + `canManageAll`)
+  - `src/app/api/categories/route.ts` (POST guest guard + `canManageAll`)
+  - `src/app/api/categories/[id]/route.ts` (PATCH/DELETE guest guard + `canManageAll`)
+  - `src/app/api/users/route.ts` (GET + POST guest guard + `canManageAll`)
+  - `src/app/api/users/[id]/route.ts` (GET/PATCH/DELETE guest guard + `canManageAll`)
+  - `src/app/api/profile/route.ts` (GET returns GUEST_USER for guests; PATCH guest guard)
+  - `src/components/app/login-screen.tsx` ("Masuk sebagai Tamu" button + Teknisi-only demo panel)
+  - `src/components/app/sidebar.tsx` (guest: hide Buat Laporan CTA → Mode tamu badge; hide management + Profil nav)
+  - `src/components/app/mobile-nav.tsx` (guest: 4-cell bottom nav with Keluar instead of FAB; drawer hides management)
+  - `src/components/app/topbar.tsx` (guest: hide "Profil Saya", show "Mode tamu — hanya melihat" disabled item)
+  - `src/components/app/views/dashboard-view.tsx` (guest: hide Buat Laporan CTA + admin banner; add Mode tamu notice)
+  - `src/components/app/views/reports-view.tsx` (guest: hide Buat Laporan button + FAB; add Mode tamu badge)
+  - `src/components/app/views/report-detail-view.tsx` (guest: hide ActionPanel + CommentComposer + Delete + OwnerEditPanel; add Mode tamu badge; pass `canAssign` prop to ActionPanel)
+  - `src/components/app/views/locations-view.tsx` (AccessDenied for non-managers)
+  - `src/components/app/views/categories-view.tsx` (AccessDenied for non-managers)
+  - `src/components/app/views/users-view.tsx` (AccessDenied for non-managers)
+  - `src/components/app/views/profile-view.tsx` (guest: read-only card with Keluar button; non-guest: unchanged editable forms)
+  - `src/components/app/views/report-form-view.tsx` (AccessDenied safety net for guests; hooks called unconditionally above the early return)
+- Done checklist:
+  - [x] `bun run lint` passes (0 errors; 1 pre-existing warning in `prisma/seed.ts`).
+  - [x] `/home/z/my-project/dev.log` shows no compile errors after edits (only `✓ Compiled in …ms` and 200/201/403 responses).
+  - [x] Login screen shows: email/password form + "Masuk" button + "Masuk sebagai Tamu" button + demo panel with only Teknisi.
+  - [x] Clicking "Masuk sebagai Tamu" logs in as guest → dashboard renders with "Mode tamu" notice, no "Buat Laporan" CTA, no admin banner.
+  - [x] Guest sidebar shows only Beranda + Laporan (no Lokasi/Kategori/Pengguna/Profil management).
+  - [x] Guest can open Reports list (read-only, no create button, no FAB).
+  - [x] Guest can open a report detail → sees info + history timeline, but NO ActionPanel, NO comment composer, NO delete button.
+  - [x] Guest trying to POST/PATCH/DELETE via API gets 403 (verified via curl on reports, locations, categories, users, comments, profile).
+  - [x] Logging in as `teknisi@smo.com / teknisi123` still gives full management access (verified: can create/edit/delete reports, comment, manage locations/categories/users — sidebar shows all nav items, dashboard shows management banner + "Buat Laporan" CTA).
+  - [x] Mobile: guest bottom nav has no FAB, drawer hides management items (verified: 4-cell bottom nav = Beranda, Laporan, Keluar, Menu).
+- Deviations from spec: (1) The spec listed `src/app/api/upload/route.ts` for a guest guard, but no such file exists in the project — left alone. (2) The spec said "preserve all existing logic after the guard", but several DELETE/PATCH/POST handlers had legacy `user.role !== 'ADMIN'` admin-only checks that, if preserved verbatim, would have blocked Teknisi from managing (contradicting the done checklist item "Logging in as teknisi@smo.com still gives full management access ... delete, manage locations/categories/users"). Updated those checks to `!canManageAll(user)` so Teknisi keeps full management while guests are still rejected (and ADMIN remains equivalent for backward-compat). (3) The ActionPanel's assignee select previously used `useAppStore.getState().user?.role === 'ADMIN'` for both the visibility check and the technicians-list query `enabled` flag — replaced with a `canAssign` prop so Teknisi can also assign reports (per the new policy). (4) Dashboard's "X laporan butuh penugasan" banner was previously gated on `user.role === 'ADMIN'`; updated to `isManager` so Teknisi sees it too (and guests don't).
+
+---
+Task ID: 6 (verification)
+Agent: main
+Task: Verify the new role policy (Teknisi = full management, Tamu = read-only) end-to-end
+
+Work Log:
+- Verified via Agent Browser in a fresh session:
+  1. Login screen shows the new "Masuk sebagai Tamu" button (outline style, below "Masuk") + demo panel reduced to only the Teknisi account.
+  2. Clicking "Masuk sebagai Tamu" → POST /api/auth/guest 200 → dashboard renders "Halo, Tamu 👋" with the "Mode tamu — Anda hanya dapat melihat" notice. No "Buat Laporan" CTA, no admin "butuh penugasan" banner.
+  3. Guest sidebar shows ONLY Beranda + Laporan (Lokasi/Kategori/Pengguna/Profil all hidden).
+  4. Guest Reports list: no create button, no FAB, shows "Mode tamu" badge, "Telusuri semua laporan kerusakan (mode tamu)" subtitle, 12 reports viewable.
+  5. Guest Report detail (opened "AC berisik di Ruang Server Backup"): shows "Mode tamu — hanya melihat" badge, full report info (status/priority/location/category/reporter/assignee/description), AND the complete "Riwayat Aktivitas" timeline. NO ActionPanel, NO comment composer, NO delete button, NO owner-edit pencil.
+  6. Guest logout via user menu → returned to login screen cleanly.
+  7. Logged in as `teknisi@smo.com / teknisi123` → dashboard "Halo, Budi 👋" WITH "Buat Laporan" CTA + admin "5 laporan butuh penugasan" banner. Sidebar shows ALL nav items (Buat Laporan, Beranda, Laporan, Lokasi, Kategori, Pengguna, Profil).
+- Verified via curl (reliable, unlike flaky headless clicks):
+  - Guest POST /api/reports → 403 "Akses tamu hanya untuk melihat..."
+  - Teknisi POST /api/reports → 201 (new report created in Turso, id cmuxxq02v...)
+  - Teknisi POST /api/locations → 201 (new location created in Turso)
+  - Guest POST /api/locations → 403
+- Cleaned up the test report + test location (deleted via the teknisi session) → back to 12 reports / 12 locations / 8 categories.
+- Final Turso state confirmed: admin@smo.com → TECHNICIAN, teknisi@smo.com → TECHNICIAN, andreas@smo.com → USER, user@smo.com → USER.
+
+Stage Summary:
+- New role policy is live and verified end-to-end against the Turso database.
+- Only Teknisi can manage everything (create/edit/delete reports, change status/priority, assign technicians, manage locations/categories/users).
+- "Masuk sebagai Tamu" gives read-only access: can browse dashboard, all reports, and the full history timeline of every report — but cannot create, edit, delete, comment, upload, or open any management view (those return 403 at the API and are hidden in the UI).
+- Demo entry points: (1) Teknisi — teknisi@smo.com / teknisi123, (2) Tamu — one-click "Masuk sebagai Tamu" button (no password).

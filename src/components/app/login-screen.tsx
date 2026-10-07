@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ChevronDown, Loader2, LockKeyhole, Mail, ShieldCheck } from 'lucide-react'
+import { ChevronDown, Eye, Loader2, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -28,30 +28,22 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
+// Per the new SMO role policy, only Teknisi is promoted as a demo account on
+// the login screen. Guests have their own dedicated "Masuk sebagai Tamu" button.
 const DEMO_ACCOUNTS = [
-  {
-    role: 'Administrator',
-    email: 'admin@smo.com',
-    password: 'admin123',
-    desc: 'Akses penuh: pengguna, lokasi, kategori, laporan',
-  },
   {
     role: 'Teknisi',
     email: 'teknisi@smo.com',
     password: 'teknisi123',
-    desc: 'Perbarui status, prioritas, dan resolusi laporan',
-  },
-  {
-    role: 'Karyawan',
-    email: 'user@smo.com',
-    password: 'user123',
-    desc: 'Buat laporan dan lihat laporan milik Anda',
+    desc: 'Kelola semua laporan, lokasi, kategori, dan pengguna',
   },
 ]
 
 export function LoginScreen() {
   const setUser = useAppStore((s) => s.setUser)
+  const setAuthLoading = useAppStore((s) => s.setAuthLoading)
   const [submitting, setSubmitting] = React.useState(false)
+  const [guestLoading, setGuestLoading] = React.useState(false)
   const [demoOpen, setDemoOpen] = React.useState(false)
   const [formErr, setFormErr] = React.useState<string | null>(null)
 
@@ -76,6 +68,26 @@ export function LoginScreen() {
       toast.error('Gagal masuk', { description: msg })
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function onGuestLogin() {
+    setFormErr(null)
+    setGuestLoading(true)
+    try {
+      const res = await apiFetch<{ user: any }>('/api/auth/guest', {
+        method: 'POST',
+      })
+      setUser(res.user)
+      setAuthLoading(false)
+      toast.success('Masuk sebagai tamu', {
+        description: 'Anda hanya dapat melihat laporan dan riwayat.',
+      })
+    } catch (e) {
+      const msg = e instanceof ApiError ? e.message : 'Gagal masuk sebagai tamu'
+      toast.error('Gagal masuk sebagai tamu', { description: msg })
+    } finally {
+      setGuestLoading(false)
     }
   }
 
@@ -210,7 +222,7 @@ export function LoginScreen() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={submitting}
+                  disabled={submitting || guestLoading}
                   size="lg"
                 >
                   {submitting ? (
@@ -223,6 +235,44 @@ export function LoginScreen() {
                   )}
                 </Button>
               </form>
+
+              {/* Divider */}
+              <div className="relative my-5">
+                <div className="absolute inset-0 flex items-center" aria-hidden>
+                  <span className="w-full border-t border-border/70" />
+                </div>
+                <div className="relative flex justify-center">
+                  <span className="bg-card text-muted-foreground px-3 text-xs uppercase tracking-wide">
+                    atau
+                  </span>
+                </div>
+              </div>
+
+              {/* Guest login */}
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={submitting || guestLoading}
+                size="lg"
+                onClick={onGuestLogin}
+              >
+                {guestLoading ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    Memproses…
+                  </>
+                ) : (
+                  <>
+                    <UserRound className="size-4" />
+                    Masuk sebagai Tamu
+                  </>
+                )}
+              </Button>
+              <p className="mt-2 flex items-center justify-center gap-1.5 text-center text-xs text-muted-foreground">
+                <Eye className="size-3" />
+                Login sebagai tamu untuk melihat tanpa mengelola.
+              </p>
 
               <Collapsible open={demoOpen} onOpenChange={setDemoOpen} className="mt-5">
                 <CollapsibleTrigger asChild>
@@ -258,7 +308,7 @@ export function LoginScreen() {
                         size="sm"
                         variant="outline"
                         onClick={() => fillDemo(acc.email, acc.password)}
-                        disabled={submitting}
+                        disabled={submitting || guestLoading}
                         type="button"
                       >
                         Gunakan

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession, canUpdateStatus, canAssign } from '@/lib/auth'
+import { getSession, canUpdateStatus, canAssign, canManageAll, isReadOnly } from '@/lib/auth'
 import { STATUS_CONFIG } from '@/lib/types'
 import type { ReportStatus, ReportPriority } from '@/lib/types'
 import { buildReportIncludes } from '../route'
@@ -37,7 +37,8 @@ export async function GET(
   if (!report) {
     return NextResponse.json({ error: 'Laporan tidak ditemukan' }, { status: 404 })
   }
-  // Authorization: USER can only view their own
+  // Authorization: USER can only view their own.
+  // GUEST and TECH/ADMIN can view ANY report (read-only browsing).
   if (user.role === 'USER' && report.reporterId !== user.id) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
@@ -52,6 +53,16 @@ export async function PATCH(
   const user = await getSession()
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+  // Guests are read-only viewers — they cannot edit anything.
+  if (isReadOnly(user)) {
+    return NextResponse.json(
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
   }
   const { id } = await params
   const report = await db.report.findUnique({ where: { id } })
@@ -266,7 +277,7 @@ export async function PATCH(
   return NextResponse.json(updated)
 }
 
-// DELETE /api/reports/[id] — ADMIN only
+// DELETE /api/reports/[id] — Teknisi/Admin only (full management)
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -275,9 +286,20 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  // Guests are read-only viewers — they cannot delete anything.
+  if (isReadOnly(user)) {
     return NextResponse.json(
-      { error: 'Hanya admin yang dapat menghapus laporan' },
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
+  }
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage everything.
+  if (!canManageAll(user)) {
+    return NextResponse.json(
+      { error: 'Hanya teknisi yang dapat menghapus laporan' },
       { status: 403 }
     )
   }

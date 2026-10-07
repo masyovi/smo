@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession, hashPassword } from '@/lib/auth'
+import { getSession, hashPassword, canManageAll, isReadOnly } from '@/lib/auth'
 
 const userSelect = {
   id: true,
@@ -13,15 +13,16 @@ const userSelect = {
   updatedAt: true,
 } as const
 
-// GET /api/users — ADMIN only
+// GET /api/users — Teknisi/Admin only (management view). Guests get 403.
 export async function GET() {
   const user = await getSession()
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  // Guests (and any non-manager) cannot see the user list.
+  if (isReadOnly(user) || !canManageAll(user)) {
     return NextResponse.json(
-      { error: 'Hanya admin yang dapat melihat daftar pengguna' },
+      { error: 'Hanya teknisi yang dapat melihat daftar pengguna' },
       { status: 403 }
     )
   }
@@ -38,9 +39,20 @@ export async function POST(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  // Guests are read-only viewers — they cannot create users.
+  if (isReadOnly(user)) {
     return NextResponse.json(
-      { error: 'Hanya admin yang dapat menambah pengguna' },
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
+  }
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage everything.
+  if (!canManageAll(user)) {
+    return NextResponse.json(
+      { error: 'Hanya teknisi yang dapat menambah pengguna' },
       { status: 403 }
     )
   }

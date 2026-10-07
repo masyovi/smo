@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession, hashPassword } from '@/lib/auth'
+import { getSession, hashPassword, canManageAll, isReadOnly } from '@/lib/auth'
 
 const userSelect = {
   id: true,
@@ -22,7 +22,7 @@ export async function GET(
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  if (isReadOnly(user) || !canManageAll(user)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
   const { id } = await params
@@ -45,7 +45,18 @@ export async function PATCH(
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  // Guests are read-only viewers — they cannot edit anything.
+  if (isReadOnly(user)) {
+    return NextResponse.json(
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
+  }
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage everything.
+  if (!canManageAll(user)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
   const { id } = await params
@@ -119,7 +130,18 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  // Guests are read-only viewers — they cannot delete anything.
+  if (isReadOnly(user)) {
+    return NextResponse.json(
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
+  }
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage everything.
+  if (!canManageAll(user)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
   const { id } = await params

@@ -37,6 +37,7 @@ import {
 } from '@/components/ui/radio-group'
 import { CategoryIcon } from '@/components/app/category-icon'
 import { PriorityBadge } from '@/components/app/priority-badge'
+import { AccessDenied } from '@/components/app/access-denied'
 import { apiFetch, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { PRIORITY_LIST, PRIORITY_CONFIG, type ReportPriority } from '@/lib/types'
@@ -55,14 +56,19 @@ type FormValues = z.infer<typeof schema>
 export function ReportFormView() {
   const setView = useAppStore((s) => s.setView)
   const openReport = useAppStore((s) => s.openReport)
+  const user = useAppStore((s) => s.user)
 
   const { data: locations } = useQuery({
     queryKey: ['locations'],
     queryFn: () => apiFetch<Array<{ id: string; name: string; building: string; floor: string | null }>>('/api/locations'),
+    // Guests can't reach this form (the "Buat Laporan" CTA is hidden for them),
+    // so we only fetch locations/categories when the user is allowed.
+    enabled: !!user && user.role !== 'GUEST',
   })
   const { data: categories } = useQuery({
     queryKey: ['categories'],
     queryFn: () => apiFetch<Array<{ id: string; name: string; icon: string | null }>>('/api/categories'),
+    enabled: !!user && user.role !== 'GUEST',
   })
 
   const form = useForm<FormValues>({
@@ -79,6 +85,15 @@ export function ReportFormView() {
   const [imageFile, setImageFile] = React.useState<File | null>(null)
   const [imagePreview, setImagePreview] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
+
+  // Safety net: guests should never reach this view (the "Buat Laporan" CTA is
+  // hidden for them in the sidebar/dashboard). If a guest somehow lands here
+  // (e.g. persisted view state), show the Access Denied card instead.
+  // IMPORTANT: all React Hooks are called above unconditionally, so this
+  // early return is safe.
+  if (user?.role === 'GUEST') {
+    return <AccessDenied />
+  }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0]

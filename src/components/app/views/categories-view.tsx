@@ -42,6 +42,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { apiFetch, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { EmptyState } from '@/components/app/empty-state'
+import { AccessDenied } from '@/components/app/access-denied'
 import {
   CategoryIcon,
   CATEGORY_ICON_OPTIONS,
@@ -66,16 +67,12 @@ export function CategoriesView() {
   })
 
   if (!user) return null
-  const isAdmin = user.role === 'ADMIN'
 
-  if (!isAdmin) {
-    return (
-      <EmptyState
-        icon={Tag}
-        title="Akses ditolak"
-        description="Hanya administrator yang dapat mengelola kategori."
-      />
-    )
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage
+  // categories. Guests and regular users get an "Akses Ditolak" empty state.
+  const canManage = user.role === 'ADMIN' || user.role === 'TECHNICIAN'
+  if (!canManage) {
+    return <AccessDenied />
   }
 
   if (isLoading) return <ListSkeleton />

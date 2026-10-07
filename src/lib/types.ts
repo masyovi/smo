@@ -2,7 +2,7 @@
 
 export type ReportStatus = 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'
 export type ReportPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
-export type UserRole = 'ADMIN' | 'TECHNICIAN' | 'USER'
+export type UserRole = 'ADMIN' | 'TECHNICIAN' | 'USER' | 'GUEST'
 
 export type ReportAction =
   | 'CREATED'
@@ -85,6 +85,10 @@ export const ROLE_CONFIG: Record<UserRole, { label: string; badge: string }> = {
   USER: {
     label: 'Karyawan',
     badge: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/50 dark:text-slate-300 dark:border-slate-700',
+  },
+  GUEST: {
+    label: 'Tamu',
+    badge: 'bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-900',
   },
 }
 

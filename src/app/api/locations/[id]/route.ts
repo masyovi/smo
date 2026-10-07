@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+import { getSession, canManageAll, isReadOnly } from '@/lib/auth'
 
 // PATCH /api/locations/[id]
 export async function PATCH(
@@ -11,9 +11,20 @@ export async function PATCH(
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  // Guests are read-only viewers — they cannot edit anything.
+  if (isReadOnly(user)) {
     return NextResponse.json(
-      { error: 'Hanya admin yang dapat mengubah lokasi' },
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
+  }
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage everything.
+  if (!canManageAll(user)) {
+    return NextResponse.json(
+      { error: 'Hanya teknisi yang dapat mengubah lokasi' },
       { status: 403 }
     )
   }
@@ -45,9 +56,20 @@ export async function DELETE(
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
-  if (user.role !== 'ADMIN') {
+  // Guests are read-only viewers — they cannot delete anything.
+  if (isReadOnly(user)) {
     return NextResponse.json(
-      { error: 'Hanya admin yang dapat menghapus lokasi' },
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
+  }
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage everything.
+  if (!canManageAll(user)) {
+    return NextResponse.json(
+      { error: 'Hanya teknisi yang dapat menghapus lokasi' },
       { status: 403 }
     )
   }

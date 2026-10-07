@@ -60,6 +60,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { apiFetch, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { EmptyState } from '@/components/app/empty-state'
+import { AccessDenied } from '@/components/app/access-denied'
 import { RoleBadge } from '@/components/app/role-badge'
 import { formatDate } from '@/lib/types'
 import type { UserRole } from '@/lib/types'
@@ -85,14 +86,12 @@ export function UsersView() {
   })
 
   if (!user) return null
-  if (user.role !== 'ADMIN') {
-    return (
-      <EmptyState
-        icon={UsersIcon}
-        title="Akses ditolak"
-        description="Hanya administrator yang dapat mengelola pengguna."
-      />
-    )
+
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage
+  // users. Guests and regular users get an "Akses Ditolak" empty state.
+  const canManage = user.role === 'ADMIN' || user.role === 'TECHNICIAN'
+  if (!canManage) {
+    return <AccessDenied />
   }
 
   if (isLoading) return <ListSkeleton />

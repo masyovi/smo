@@ -19,7 +19,7 @@ type SessionUser = {
   id: string
   email: string
   name: string
-  role: 'ADMIN' | 'TECHNICIAN' | 'USER'
+  role: 'ADMIN' | 'TECHNICIAN' | 'USER' | 'GUEST'
   phone: string | null
   department: string | null
 }
@@ -85,3 +85,14 @@ export const useAppStore = create<AppState>()(
     }
   )
 )
+
+// Convenience selector: is the current user a read-only guest?
+export const useIsGuest = () =>
+  useAppStore((s) => s.user?.role === 'GUEST')
+
+// Convenience selector: can the current user manage everything (TECH/ADMIN)?
+// Useful for showing management UI to technicians only.
+export const useCanManageAll = () => {
+  const role = useAppStore((s) => s.user?.role)
+  return role === 'TECHNICIAN' || role === 'ADMIN'
+}

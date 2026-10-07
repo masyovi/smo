@@ -5,14 +5,15 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
-  Building2,
+  Eye,
   KeyRound,
   Loader2,
+  LogOut,
   Mail,
-  Phone,
   Save,
   ShieldCheck,
   User as UserIcon,
+  UserRound,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -32,7 +33,7 @@ type Profile = {
   id: string
   name: string
   email: string
-  role: 'ADMIN' | 'TECHNICIAN' | 'USER'
+  role: 'ADMIN' | 'TECHNICIAN' | 'USER' | 'GUEST'
   phone: string | null
   department: string | null
   createdAt: string
@@ -42,6 +43,7 @@ type Profile = {
 export function ProfileView() {
   const user = useAppStore((s) => s.user)
   const setUser = useAppStore((s) => s.setUser)
+  const logout = useAppStore((s) => s.logout)
   const { data, isLoading, refetch } = useQuery<{ user: Profile }>({
     queryKey: ['profile'],
     queryFn: () => apiFetch<{ user: Profile }>('/api/profile'),
@@ -56,6 +58,7 @@ export function ProfileView() {
   const [confirmPassword, setConfirmPassword] = React.useState('')
   const [savingProfile, setSavingProfile] = React.useState(false)
   const [savingPassword, setSavingPassword] = React.useState(false)
+  const [loggingOut, setLoggingOut] = React.useState(false)
 
   React.useEffect(() => {
     if (data?.user) {
@@ -65,6 +68,87 @@ export function ProfileView() {
     }
   }, [data])
 
+  const isGuest = user?.role === 'GUEST'
+
+  // ---------- Guest read-only profile ----------
+  async function handleGuestLogout() {
+    setLoggingOut(true)
+    try {
+      await apiFetch('/api/auth/logout', { method: 'POST', skipJson: true })
+    } catch {
+      // ignore network errors
+    } finally {
+      logout()
+      toast.success('Berhasil keluar', { description: 'Sampai jumpa!' })
+      setLoggingOut(false)
+    }
+  }
+
+  if (isGuest) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="mx-auto max-w-3xl space-y-4"
+      >
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight sm:text-xl">
+            Profil Tamu
+          </h2>
+          <p className="text-muted-foreground text-sm">
+            Anda masuk sebagai tamu — hanya dapat melihat.
+          </p>
+        </div>
+
+        <Card className="border-teal-200/70 bg-teal-50/50 dark:border-teal-900/60 dark:bg-teal-950/20">
+          <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:gap-4 sm:p-6">
+            <div className="flex size-14 items-center justify-center rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300 ring-2 ring-teal-200 dark:ring-teal-900">
+              <UserRound className="size-7" />
+            </div>
+            <div className="flex-1 space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-medium">{user?.name ?? 'Tamu'}</p>
+                <RoleBadge role="GUEST" />
+              </div>
+              <p className="text-muted-foreground text-xs">
+                {user?.email ?? 'tamu@smo.local'}
+              </p>
+              <p className="text-muted-foreground/80 text-[11px] inline-flex items-center gap-1">
+                <Eye className="size-3" />
+                Akun tamu tidak memiliki informasi profil yang dapat diedit.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-4 sm:p-6">
+            <p className="text-sm text-muted-foreground">
+              Untuk mengelola laporan, lokasi, kategori, atau pengguna, silakan
+              keluar dan masuk sebagai teknisi.
+            </p>
+            <Separator />
+            <Button
+              variant="outline"
+              className="w-full justify-center text-destructive hover:text-destructive sm:w-auto"
+              onClick={handleGuestLogout}
+              disabled={loggingOut}
+            >
+              {loggingOut ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <LogOut className="size-4" />
+              )}
+              Keluar
+            </Button>
+          </CardContent>
+        </Card>
+      </motion.div>
+    )
+  }
+
+  // ---------- Regular user/technician profile (editable) ----------
   if (isLoading) return <ProfileSkeleton />
   if (!user || !data?.user) return null
   const profile = data.user

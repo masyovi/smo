@@ -11,6 +11,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Eye,
   ImageOff,
   Loader2,
   MapPin,
@@ -29,6 +30,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -171,11 +173,13 @@ export function ReportDetailView() {
   }
   if (!data) return null
 
+  const isGuest = user?.role === 'GUEST'
+  const isManager = user?.role === 'ADMIN' || user?.role === 'TECHNICIAN'
   const isOwner = user?.id === data.reporterId
-  const canEditStatus = user?.role === 'ADMIN' || user?.role === 'TECHNICIAN'
-  const canAssign = user?.role === 'ADMIN'
-  const canDelete = user?.role === 'ADMIN'
-  const canEditMeta = isOwner && data.status === 'PENDING'
+  const canEditStatus = isManager
+  const canAssign = isManager
+  const canDelete = isManager
+  const canEditMeta = !isGuest && isOwner && data.status === 'PENDING'
 
   return (
     <motion.div
@@ -192,6 +196,19 @@ export function ReportDetailView() {
         <ArrowLeft className="size-4" />
         Kembali ke daftar laporan
       </button>
+
+      {/* Guest read-only badge */}
+      {isGuest && (
+        <div className="flex items-center justify-end">
+          <Badge
+            variant="outline"
+            className="bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-900"
+          >
+            <Eye className="size-3" />
+            Mode tamu — hanya melihat
+          </Badge>
+        </div>
+      )}
 
       {/* Hero */}
       <Card>
@@ -313,11 +330,12 @@ export function ReportDetailView() {
         </Card>
       )}
 
-      {/* Action panel */}
+      {/* Action panel — hidden for guests */}
       {canEditStatus && (
         <ActionPanel
           report={data}
           currentUserId={user?.id ?? ''}
+          canAssign={canAssign}
           onUpdated={() => {
             qc.invalidateQueries({ queryKey: ['report', reportId] })
             qc.invalidateQueries({ queryKey: ['reports'] })
@@ -326,7 +344,7 @@ export function ReportDetailView() {
         />
       )}
 
-      {/* Owner edit panel */}
+      {/* Owner edit panel — hidden for guests */}
       {canEditMeta && (
         <OwnerEditPanel
           report={data}
@@ -337,13 +355,15 @@ export function ReportDetailView() {
         />
       )}
 
-      {/* Comment composer */}
-      <CommentComposer
-        reportId={data.id}
-        onCommented={() => {
-          qc.invalidateQueries({ queryKey: ['report', reportId] })
-        }}
-      />
+      {/* Comment composer — hidden for guests (read-only) */}
+      {!isGuest && (
+        <CommentComposer
+          reportId={data.id}
+          onCommented={() => {
+            qc.invalidateQueries({ queryKey: ['report', reportId] })
+          }}
+        />
+      )}
 
       {/* History timeline */}
       <Card>
@@ -426,10 +446,12 @@ function InfoTile({
 function ActionPanel({
   report,
   currentUserId,
+  canAssign,
   onUpdated,
 }: {
   report: ReportDetail
   currentUserId: string
+  canAssign: boolean
   onUpdated: () => void
 }) {
   const qc = useQueryClient()
@@ -460,7 +482,8 @@ function ActionPanel({
       )
       return all.filter((u) => u.role === 'TECHNICIAN' || u.role === 'ADMIN')
     },
-    enabled: useAppStore.getState().user?.role === 'ADMIN',
+    // Only fetch the user list when the caller actually has permission to assign.
+    enabled: canAssign,
   })
 
   const statusChanged = status !== report.status
@@ -544,7 +567,7 @@ function ActionPanel({
           </Select>
         </div>
 
-        {useAppStore.getState().user?.role === 'ADMIN' && (
+        {canAssign && (
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="assignee">Penugasan Teknisi</Label>
             <Select value={assigneeId} onValueChange={(v) => setAssigneeId(v)}>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession } from '@/lib/auth'
+import { getSession, isReadOnly } from '@/lib/auth'
 
 // POST /api/reports/[id]/comments
 export async function POST(
@@ -10,6 +10,16 @@ export async function POST(
   const user = await getSession()
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+  // Guests are read-only viewers — they cannot comment.
+  if (isReadOnly(user)) {
+    return NextResponse.json(
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
   }
   const { id } = await params
   const report = await db.report.findUnique({ where: { id } })

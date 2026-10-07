@@ -42,6 +42,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { apiFetch, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
 import { EmptyState } from '@/components/app/empty-state'
+import { AccessDenied } from '@/components/app/access-denied'
 import { formatDate } from '@/lib/types'
 
 type Location = {
@@ -64,16 +65,12 @@ export function LocationsView() {
   })
 
   if (!user) return null
-  const isAdmin = user.role === 'ADMIN'
 
-  if (!isAdmin) {
-    return (
-      <EmptyState
-        icon={MapPin}
-        title="Akses ditolak"
-        description="Hanya administrator yang dapat mengelola lokasi."
-      />
-    )
+  // Per SMO policy: only Teknisi (and ADMIN for backward-compat) can manage
+  // locations. Guests and regular users get an "Akses Ditolak" empty state.
+  const canManage = user.role === 'ADMIN' || user.role === 'TECHNICIAN'
+  if (!canManage) {
+    return <AccessDenied />
   }
 
   if (isLoading) return <ListSkeleton />

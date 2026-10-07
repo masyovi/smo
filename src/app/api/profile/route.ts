@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSession, hashPassword, verifyPassword, createSessionToken, setSessionCookie } from '@/lib/auth'
+import { getSession, hashPassword, verifyPassword, createSessionToken, setSessionCookie, isReadOnly, GUEST_USER } from '@/lib/auth'
 
 const safeSelect = {
   id: true,
@@ -17,6 +17,11 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   }
+  // Guests have no DB record — return the virtual guest user object so the
+  // UI can display "Tamu" info without crashing.
+  if (isReadOnly(user)) {
+    return NextResponse.json({ user: GUEST_USER })
+  }
   const full = await db.user.findUnique({
     where: { id: user.id },
     select: { ...safeSelect, createdAt: true, updatedAt: true },
@@ -32,6 +37,16 @@ export async function PATCH(req: NextRequest) {
   const user = await getSession()
   if (!user) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  }
+  // Guests are read-only viewers — they have no profile to edit.
+  if (isReadOnly(user)) {
+    return NextResponse.json(
+      {
+        error:
+          'Akses tamu hanya untuk melihat. Silakan login sebagai teknisi untuk mengelola.',
+      },
+      { status: 403 }
+    )
   }
   const body = await req.json().catch(() => ({}))
   const data: Record<string, unknown> = {}

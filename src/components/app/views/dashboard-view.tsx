@@ -8,6 +8,7 @@ import {
   ArrowRight,
   ClipboardList,
   Clock,
+  Eye,
   Loader2,
   Plus,
   UserPlus,
@@ -16,6 +17,7 @@ import {
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -88,6 +90,9 @@ export function DashboardView() {
   }
   if (!data || !user) return null
 
+  const isGuest = user.role === 'GUEST'
+  const isManager = user.role === 'ADMIN' || user.role === 'TECHNICIAN'
+
   const statusData = (Object.keys(data.byStatus) as ReportStatus[]).map((s) => ({
     name: STATUS_CONFIG[s].label,
     value: data.byStatus[s] ?? 0,
@@ -118,11 +123,37 @@ export function DashboardView() {
             Ringkasan aktivitas laporan kerusakan hari ini.
           </p>
         </div>
-        <Button onClick={openNewReport} className="self-start sm:self-auto">
-          <Plus className="size-4" />
-          Buat Laporan
-        </Button>
+        {!isGuest && (
+          <Button onClick={openNewReport} className="self-start sm:self-auto">
+            <Plus className="size-4" />
+            Buat Laporan
+          </Button>
+        )}
       </div>
+
+      {/* Guest read-only notice */}
+      {isGuest && (
+        <Card className="border-teal-200/70 bg-teal-50/50 dark:border-teal-900/60 dark:bg-teal-950/20">
+          <CardContent className="flex items-center gap-3 px-4 py-3 sm:px-6">
+            <div className="flex size-9 items-center justify-center rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300">
+              <Eye className="size-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Mode tamu — Anda hanya dapat melihat</p>
+              <p className="text-muted-foreground text-xs">
+                Anda dapat menelusuri laporan dan riwayat, tetapi tidak dapat membuat,
+                mengedit, atau menghapus.
+              </p>
+            </div>
+            <Badge
+              variant="outline"
+              className="hidden bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-900 sm:inline-flex"
+            >
+              Tamu
+            </Badge>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -153,8 +184,8 @@ export function DashboardView() {
         />
       </div>
 
-      {/* Admin quick assignment banner */}
-      {user.role === 'ADMIN' && data.pendingUnassigned > 0 && (
+      {/* Manager quick assignment banner — hidden for guests */}
+      {isManager && data.pendingUnassigned > 0 && (
         <Card className="border-amber-300/70 bg-amber-50/60 dark:border-amber-900/60 dark:bg-amber-950/30">
           <CardContent className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div className="flex items-center gap-3">
@@ -269,7 +300,11 @@ export function DashboardView() {
               icon={ClipboardList}
               title="Belum ada laporan"
               description="Laporan yang dibuat akan muncul di sini."
-              action={{ label: 'Buat Laporan', onClick: openNewReport }}
+              action={
+                isGuest
+                  ? undefined
+                  : { label: 'Buat Laporan', onClick: openNewReport }
+              }
             />
           ) : (
             <ul className="divide-y">

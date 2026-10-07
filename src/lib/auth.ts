@@ -9,9 +9,19 @@ export type SessionUser = {
   id: string
   email: string
   name: string
-  role: 'ADMIN' | 'TECHNICIAN' | 'USER'
+  role: 'ADMIN' | 'TECHNICIAN' | 'USER' | 'GUEST'
   phone: string | null
   department: string | null
+}
+
+// Virtual guest user — no DB record. Guests are read-only viewers.
+export const GUEST_USER: SessionUser = {
+  id: 'guest',
+  email: 'tamu@smo.local',
+  name: 'Tamu',
+  role: 'GUEST',
+  phone: null,
+  department: null,
 }
 
 // ---------- Password hashing ----------
@@ -44,14 +54,20 @@ function hmac(payload: string): string {
   return createHmac('sha256', key).update(payload).digest('hex')
 }
 
-export function createSessionToken(user: { id: string; email: string; role: string }): string {
+export function createSessionToken(user: { id: string; email: string; role: string; name?: string }): string {
   const payload = JSON.stringify({
     sub: user.id,
     email: user.email,
+    name: user.name ?? '',
     role: user.role,
     iat: Date.now(),
   })
   return sign(payload)
+}
+
+// Create a token for the virtual guest user (read-only viewer, no DB record).
+export function createGuestSessionToken(): string {
+  return createSessionToken(GUEST_USER)
 }
 
 export function verifySessionToken(token: string): SessionUser | null {
@@ -83,6 +99,10 @@ export async function getSession(): Promise<SessionUser | null> {
   if (!token) return null
   const sessionUser = verifySessionToken(token)
   if (!sessionUser) return null
+  // Guests are virtual — they have no DB record, so skip the DB lookup.
+  if (sessionUser.role === 'GUEST' || sessionUser.id === 'guest') {
+    return GUEST_USER
+  }
   // refresh name/phone/department from db (token only carries id/email/role)
   const dbUser = await db.user.findUnique({
     where: { id: sessionUser.id },
@@ -120,14 +140,27 @@ export async function clearSessionCookie() {
 export const SESSION_COOKIE_NAME = SESSION_COOKIE
 
 // ---------- Authorization helpers ----------
+// Per SMO policy: only Teknisi (technician) can manage everything.
+// ADMIN is treated as equivalent to TECHNICIAN for backward-compat with the
+// legacy admin@smo.com account (now re-roled to TECHNICIAN anyway).
+// GUEST is read-only — cannot create, edit, delete, or comment.
 export function canManageAll(user: SessionUser): boolean {
-  return user.role === 'ADMIN'
+  return user.role === 'TECHNICIAN' || user.role === 'ADMIN'
 }
 
 export function canUpdateStatus(user: SessionUser): boolean {
-  return user.role === 'ADMIN' || user.role === 'TECHNICIAN'
+  return user.role === 'TECHNICIAN' || user.role === 'ADMIN'
 }
 
 export function canAssign(user: SessionUser): boolean {
-  return user.role === 'ADMIN'
+  return user.role === 'TECHNICIAN' || user.role === 'ADMIN'
+}
+
+export function isGuest(user: SessionUser | null): boolean {
+  return !!user && user.role === 'GUEST'
+}
+
+// Read-only roles cannot perform ANY mutation (create/edit/delete/comment).
+export function isReadOnly(user: SessionUser | null): boolean {
+  return !user || user.role === 'GUEST'
 }

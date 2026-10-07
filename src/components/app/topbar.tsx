@@ -6,6 +6,7 @@ import { useTheme } from 'next-themes'
 import {
   Bell,
   ChevronDown,
+  Eye,
   LogOut,
   Moon,
   Sun,
@@ -60,6 +61,7 @@ export function Topbar() {
 
   if (!user) return null
   const title = TITLES[view] ?? 'SMO'
+  const isGuest = user.role === 'GUEST'
 
   async function handleLogout() {
     try {
@@ -147,10 +149,18 @@ export function Topbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => setView('profile')}>
-              <UserIcon className="size-4" />
-              Profil Saya
-            </DropdownMenuItem>
+            {!isGuest && (
+              <DropdownMenuItem onClick={() => setView('profile')}>
+                <UserIcon className="size-4" />
+                Profil Saya
+              </DropdownMenuItem>
+            )}
+            {isGuest && (
+              <DropdownMenuItem disabled>
+                <Eye className="size-4" />
+                Mode tamu — hanya melihat
+              </DropdownMenuItem>
+            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
