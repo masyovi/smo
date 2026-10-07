@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ChevronDown, Eye, Loader2, LockKeyhole, Mail, ShieldCheck, UserRound } from 'lucide-react'
+import { ChevronDown, Eye, Loader2, LockKeyhole, Mail, UserRound } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -106,8 +106,8 @@ export function LoginScreen() {
       <div className="relative hidden flex-col justify-between overflow-hidden bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 p-10 text-white lg:flex">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.18),transparent_45%),radial-gradient(circle_at_70%_80%,rgba(255,255,255,0.12),transparent_50%)]" />
         <div className="relative flex items-center gap-3">
-          <div className="flex size-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20">
-            <ShieldCheck className="size-6" />
+          <div className="flex size-12 items-center justify-center overflow-hidden rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20">
+            <img src="/smo-icon.png" alt="SMO" className="size-full object-cover" draggable={false} />
           </div>
           <div>
             <div className="text-2xl font-semibold tracking-tight">SMO</div>
@@ -154,8 +154,8 @@ export function LoginScreen() {
       <div className="flex min-h-screen items-center justify-center p-6">
         <div className="w-full max-w-md">
           <div className="mb-6 flex flex-col items-center text-center lg:hidden">
-            <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20">
-              <ShieldCheck className="size-7" />
+            <div className="mb-3 flex size-14 items-center justify-center overflow-hidden rounded-2xl shadow-sm ring-1 ring-emerald-400/30">
+              <img src="/smo-icon.png" alt="SMO" className="size-full object-cover" draggable={false} />
             </div>
             <h1 className="text-2xl font-bold tracking-tight">SMO</h1>
             <p className="text-muted-foreground text-sm">Save My Office</p>

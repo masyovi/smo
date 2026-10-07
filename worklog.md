@@ -686,3 +686,36 @@ Work Log:
 
 Stage Summary:
 - The "Batal dan kembali" back-link at the top of the Create Report form is gone. The form starts directly with the card header + fields. The cancel/submit buttons at the bottom remain.
+
+---
+Task ID: 18
+Agent: main
+Task: Replace the app icon (favicon URL + brand logo) with the user-uploaded image
+
+Work Log:
+- Copied the user-uploaded image `/home/z/my-project/upload/1791381221598.png` (678×695 PNG, RGBA) to `public/smo-icon.png` so Next.js serves it at `/smo-icon.png`.
+- Updated `src/app/layout.tsx` metadata `icons`: changed `icon` from the external URL `https://z-cdn.chatglm.cn/z-ai/static/logo.svg` → local `/smo-icon.png`, and added `apple: "/smo-icon.png"` for iOS home-screen icon. This is the browser-tab favicon + PWA icon URL.
+- Rewrote `src/components/app/brand.tsx`:
+  - Removed the `ShieldCheck`/`Building2` Lucide imports and the gradient + inner-highlight decoration.
+  - The `Brand` component now renders the uploaded image in a rounded-xl container (`overflow-hidden rounded-xl shadow-md shadow-emerald-500/20 ring-1 ring-emerald-400/30`, `img size-full object-cover`). Kept the "SMO" + "Save My Office" wordmark text next to it.
+  - `BrandMark` (used in the mobile top bar) now also renders the image (removed the `icon` prop — it's no longer needed and isn't used anywhere with a custom icon).
+- Updated `src/components/app/login-screen.tsx`:
+  - Desktop left-panel brand (line 109-111): replaced `<ShieldCheck className="size-6" />` with `<img src="/smo-icon.png" ... className="size-full object-cover" />` inside the rounded-2xl container (kept the white/15 backdrop-blur + ring for a frosted-glass look on the gradient panel).
+  - Mobile top brand (line 157-159): replaced `<ShieldCheck className="size-7" />` with the image (removed the `bg-primary` since the image is the logo; kept a subtle emerald ring).
+  - Removed the now-unused `ShieldCheck` import.
+- Left the `Building2` usages (report-detail, locations-view, users-view, category-icon) and the `ShieldCheck` in profile-view (the "Ubah Password" button icon) untouched — those are generic semantic icons, not the brand logo.
+- Verified via Agent Browser + VLM:
+  - `/smo-icon.png` served (HTTP 200).
+  - Sidebar header brand `<img src="...localhost:3000/smo-icon.png">` present. VLM: "a colorful app icon in the top-left sidebar header... a distinct, branded logo rather than a generic shield icon". ✅
+  - Mobile topbar brand `<img src="...smo-icon.png">` present. ✅
+  - Login screen: 2 brand `<img>` elements (desktop left panel + mobile top). ✅
+  - Favicon URL now `/smo-icon.png` (local), not the external Z.ai logo URL.
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean (HTTP 200).
+
+Stage Summary:
+- The app icon is fully replaced by the user-uploaded image everywhere:
+  1. Browser-tab favicon / PWA icon URL → `/smo-icon.png` (was the external Z.ai logo URL).
+  2. Sidebar header brand (desktop) → the image.
+  3. Mobile topbar brand → the image.
+  4. Login screen brand (desktop left panel + mobile top) → the image.
+- The ShieldCheck/Building2 generic icons used for non-brand purposes (building/location, password button) are unchanged.

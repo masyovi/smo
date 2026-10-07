@@ -30,7 +30,8 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "SMO Team" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/smo-icon.png",
+    apple: "/smo-icon.png",
   },
 };
 
