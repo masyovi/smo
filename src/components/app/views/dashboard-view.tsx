@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import {
   AlertTriangle,
   ArrowRight,
+  CalendarClock,
   ClipboardList,
   Clock,
   Eye,
@@ -36,6 +37,7 @@ import {
 
 import { apiFetch } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
+import { cn } from '@/lib/utils'
 import { StatCard } from '@/components/app/stat-card'
 import { StatusBadge } from '@/components/app/status-badge'
 import { PriorityBadge } from '@/components/app/priority-badge'
@@ -65,6 +67,11 @@ type Stats = {
   }>
 }
 
+type MaintenanceNotifications = {
+  totalDue: number
+  totalUpcoming: number
+}
+
 export function DashboardView() {
   const user = useAppStore((s) => s.user)
   const openReport = useAppStore((s) => s.openReport)
@@ -75,6 +82,14 @@ export function DashboardView() {
     queryKey: ['stats'],
     queryFn: () => apiFetch<Stats>('/api/stats'),
     enabled: !!user,
+  })
+
+  // Maintenance reminder — pulls the same /api/notifications the bell uses.
+  const { data: maintenance } = useQuery<MaintenanceNotifications>({
+    queryKey: ['notifications'],
+    queryFn: () => apiFetch<MaintenanceNotifications>('/api/notifications'),
+    enabled: !!user,
+    refetchInterval: 60_000,
   })
 
   if (isLoading) return <DashboardSkeleton />
@@ -183,6 +198,54 @@ export function DashboardView() {
           sub="Prioritas URGENT yang belum selesai"
         />
       </div>
+
+      {/* Maintenance reminder — subtle single card, hidden when nothing due/upcoming */}
+      {maintenance && (maintenance.totalDue > 0 || maintenance.totalUpcoming > 0) && (
+        <motion.div
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          <Card
+            className={cn(
+              'border-amber-300/70 bg-amber-50/60 dark:border-amber-900/60 dark:bg-amber-950/30',
+              maintenance.totalDue > 0 &&
+                'border-red-300/70 bg-red-50/60 dark:border-red-900/60 dark:bg-red-950/30'
+            )}
+          >
+            <CardContent className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div className="flex items-center gap-3">
+                <div
+                  className={cn(
+                    'flex size-10 items-center justify-center rounded-full',
+                    maintenance.totalDue > 0
+                      ? 'bg-red-100 text-red-600 dark:bg-red-950/70 dark:text-red-300'
+                      : 'bg-amber-100 text-amber-600 dark:bg-amber-950/70 dark:text-amber-300'
+                  )}
+                >
+                  <CalendarClock className="size-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">
+                    {maintenance.totalDue > 0
+                      ? `${maintenance.totalDue} jadwal maintenance jatuh tempo hari ini`
+                      : `${maintenance.totalUpcoming} jadwal maintenance segera jatuh tempo`}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    {maintenance.totalDue > 0
+                      ? 'Periksa jadwal dan tandai yang sudah diselesaikan.'
+                      : 'Jadwal akan jatuh tempo dalam 7 hari ke depan.'}
+                  </p>
+                </div>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setView('schedules')} className="justify-center sm:w-auto">
+                Lihat Jadwal
+                <ArrowRight className="size-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Manager quick assignment banner — hidden for guests */}
       {isManager && data.pendingUnassigned > 0 && (

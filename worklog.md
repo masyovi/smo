@@ -367,3 +367,71 @@ Stage Summary:
 - New "Pengaturan" (Settings) hub view: management cards (Lokasi/Kategori/Pengguna/Profil) + dark mode toggle + logout — replaces the old Menu drawer on mobile.
 - Desktop sidebar updated: Catatan added; Laporan relabeled to "Riwayat" for guests.
 - All data persists to the live Turso database.
+
+---
+Task ID: 8
+Agent: full-stack-developer
+Task: Replace the old "Pengaturan" hub view with a Maintenance Schedule manager + a functional notifications bell. The "Pengaturan" nav item is relabeled to "Jadwal" and now opens the Schedules view. Topbar bell becomes a live maintenance-reminder popover with red badge + one-time Sonner toast.
+
+Work Log:
+- Read worklog.md (Tasks 1–7) and the existing files: `src/components/app/topbar.tsx`, `mobile-nav.tsx`, `sidebar.tsx`, `app-shell.tsx`, `views/settings-view.tsx`, `views/dashboard-view.tsx`, `views/notes-view.tsx` (for pattern reference), `src/lib/store.ts`, `src/lib/types.ts`, `src/lib/api.ts`, `src/lib/schedule-utils.ts`, plus the already-created schedule + notifications API routes (`/api/schedules`, `/api/schedules/[id]`, `/api/schedules/[id]/complete`, `/api/notifications`). Confirmed `AppView` already includes `'schedules'`; verified the store rehydration migration maps persisted `view: 'settings'` → `'schedules'`. Verified via Grep that `settings-view.tsx` was only imported by `app-shell.tsx` (safe to delete).
+- **Part 1 — Schedules view** (`src/components/app/views/schedules-view.tsx`, NEW): Polished schedule manager. Fetches `/api/notifications` (TanStack Query, 60s refetch). Header h1 "Jadwal Maintenance" + subtitle + guest "Mode tamu" badge + Teknisi-only "Tambah Jadwal" button. Summary row of 3 stat pills (Jatuh Tempo / Segera / Aktif) with red / amber / emerald accents. Three grid sections (1/2/3 cols) — Jatuh Tempo (red bar + red badge "Jatuh tempo hari ini" or "Terlambat N hari"), Segera (amber bar + "Dalam N hari" badge), Jadwal Lainnya (muted). Each card: title, frequencyLabel, optional location (MapPin), description (line-clamp-3), "Jadwal berikutnya: <formatDate>", optional "Terakhir selesai: <date>". Teknisi actions: "Tandai Selesai" (emerald, POST /api/schedules/[id]/complete → toast "Jadwal diselesaikan — jadwal berikutnya: <date>"), "Edit" (opens Dialog), "Hapus" (AlertDialog confirm). Create/Edit Dialog: judul (min 3), deskripsi (textarea), lokasi (Select from /api/locations with "Tanpa lokasi"), frekuensi (RadioGroup — "Bulanan" / "Per N bulan", with selected-state emerald ring), Tanggal (1-31) Select for MONTHLY / Setiap N bulan number Input (1-24) for INTERVAL, Tanggal Mulai date Input (defaults today). Empty state uses `EmptyState` with `CalendarClock` icon + "Belum ada jadwal" copy. Guests: no Tambah/Tandai Selesai/Edit/Hapus.
+- **Part 2 — Functional bell** (`src/components/app/topbar.tsx`, REWRITTEN): Added `useNotifications()` hook — TanStack Query on `/api/notifications` (60s refetch, refetchOnWindowFocus). Effect fires Sonner toast "Pengingat Maintenance" with description `${totalDue} jadwal maintenance jatuh tempo hari ini.` and `action: { label: 'Lihat', onClick: setView('schedules') }` once per session (guarded by `useRef`). `NotificationBell` component (Popover controlled with `open` state): Bell icon swaps to BellRing when `totalDue > 0`; red dot badge with count (1-9, "9+" cap) ring-offset against background. PopoverContent (w-80/w-96) has header ("Pengingat Maintenance" + small count subtitle), red-tinted "Jatuh Tempo" section listing each due schedule (title, location, "hari ini"/"terlambat N hari" badge, formatDate), amber-tinted "Segera (7 hari ke depan)" section for upcoming items, friendly empty state with `CheckCircle2` ("Tidak ada pengingat" + "Semua jadwal maintenance terpantau."), ScrollArea max-h-96, footer "Lihat semua jadwal" button. Each item click closes the popover and navigates to `setView('schedules')`.
+- **Part 2.5 — Topbar user dropdown restructure** (same file): Teknisi/ADMIN: separator group Lokasi (MapPin) → Kategori (Tag) → Pengguna (Users) at the top, then separator, then Jadwal Maintenance (CalendarClock) + Catatan (StickyNote), then separator, then Profil Saya (UserRound), separator, Keluar. USER: Jadwal Maintenance + Catatan + separator + Profil Saya + separator + Keluar (no management items — they can't manage those). GUEST: Jadwal Maintenance + Catatan + separator + disabled "Mode tamu — hanya melihat" + separator + Keluar. All menuitems use `onSelect` (closes the dropdown on click). Removed old Catatan/Pengaturan items. Added `'schedules': 'Jadwal Maintenance'` to TITLES map, removed `'settings'` entry.
+- **Part 3 — Navigation updates**: 
+  - `src/components/app/mobile-nav.tsx` (MODIFIED): Tek 5-cell bottom nav now reads Beranda, Laporan, + (raised emerald FAB), **Jadwal** (was Pengaturan, icon `CalendarClock`, `view: 'schedules'`), Catatan. Active state for this cell is now just `view === 'schedules'` (no longer the management cluster). Guest 3-cell nav (Beranda, Riwayat, Catatan) unchanged.
+  - `src/components/app/sidebar.tsx` (MODIFIED): Added `CalendarClock` to lucide imports. Added `{ view: 'schedules', label: 'Jadwal', icon: CalendarClock }` to `MAIN_NAV` (no `roles` restriction → visible to everyone including guests). Relabeled the management group `SectionLabel` from "Pengaturan" to "Manajemen". Desktop sidebar for Teknisi now reads: Buat Laporan CTA → Beranda → Laporan → Catatan → **Jadwal** → "Manajemen" section (Lokasi/Kategori/Pengguna) → "Akun" section (Profil). Desktop sidebar for Guest: Mode tamu badge → Beranda → Riwayat → Catatan → **Jadwal** (read-only) → Akun Tamu footer.
+  - `src/components/app/app-shell.tsx` (MODIFIED): Replaced `import { SettingsView } from '@/components/app/views/settings-view'` with `import { SchedulesView } from '@/components/app/views/schedules-view'`. Replaced `case 'settings': return <SettingsView />` with `case 'schedules': return <SchedulesView />`.
+- **Deleted** `src/components/app/views/settings-view.tsx` — no longer imported anywhere (verified via Grep first).
+- **Part 5 — Dashboard integration** (`src/components/app/views/dashboard-view.tsx`, MODIFIED): Added `CalendarClock` to lucide imports + `cn` to lib/utils imports. Added a `MaintenanceNotifications` type + a TanStack Query on `/api/notifications` (60s refetch). Inserted a subtle single Card between the stat cards and the manager quick-assignment banner: emerald-to-amber "Pengingat Maintenance" card that turns red when `totalDue > 0` (and amber when only `totalUpcoming > 0`). Card body: CalendarClock icon in a colored circle + headline ("N jadwal maintenance jatuh tempo hari ini" or "N jadwal maintenance segera jatuh tempo") + subtitle + "Lihat Jadwal" button → `setView('schedules')`. Card is hidden when both counts are 0. Subtle Framer Motion entrance.
+- **Verification** — curl + dev.log end-to-end against live Turso:
+  - `POST /api/auth/login` (teknisi) → 200; `GET /api/notifications` → 200 `{ totalDue: 1, totalUpcoming: 2 }` (Maintenance Lift Utama due today; AC + CCTV upcoming within 7 days; APAR + Smoke Detector in "later").
+  - `POST /api/auth/guest` → 200 (guest session).
+  - `POST /api/schedules` (guest) → 403 "Akses tamu hanya untuk melihat…" ✓.
+  - `GET /api/notifications` (guest) → 200 (guest read-only access works) ✓.
+  - `POST /api/schedules` (tek) `{ title: "TEST-FORM-CREATE", frequency: "MONTHLY", dayOfMonth: 15, startDate: "2026-10-15" }` → 201, server computed `nextDueDate: 2026-10-15T00:00:00.000Z` ✓.
+  - `POST /api/schedules/[id]/complete` (tek) → 200, `nextDueDate` advanced from `2026-10-15` → `2026-11-15` (next month) and `lastCompletedAt` set to today ✓.
+  - `PATCH /api/schedules/[id]` (tek) `{ frequency: "INTERVAL", intervalMonths: 3, startDate: "2026-10-15" }` → 200, server recomputed `nextDueDate` for the new interval rule ✓.
+  - `DELETE /api/schedules/[id]` (tek) → 200 ✓.
+  - Test schedule cleaned up — counts back to original 1 due + 2 upcoming + 2 later.
+- `bun run lint`: 0 errors, 1 pre-existing warning (`prisma/seed.ts` unused eslint-disable).
+- `dev.log`: clean — only 200/201/403 responses after edits, no compile errors. Multiple successful `✓ Compiled in …ms` entries for the new topbar/schedules-view/dashboard edits.
+
+Stage Summary:
+- New headline feature — **automatic maintenance reminders**. The topbar bell is now functional: it polls `/api/notifications` every 60 seconds, shows a red count badge when schedules are due today, opens a Popover listing due (red) + upcoming (amber) schedules with location/date/badge info, and fires a one-time-per-session Sonner toast "Pengingat Maintenance" on first load when `totalDue > 0` (with "Lihat" action that jumps to the schedules view).
+- The "Pengaturan" hub view is gone. The nav cell is now **"Jadwal"** and opens the Schedules view — a polished maintenance-schedule manager with 5 sample schedules grouped by Jatuh Tempo / Segera / Jadwal Lainnya. Teknisi can create (Dialog with MONTHLY/INTERVAL frequency + dayOfMonth or intervalMonths + location + startDate), edit, delete, and mark-as-complete (advances nextDueDate to the next cycle). Guests see everything read-only.
+- Desktop sidebar adds a "Jadwal" item (CalendarClock) between Catatan and the renamed "Manajemen" section. The mobile user dropdown (avatar menu) now hosts Lokasi/Kategori/Pengguna (Teknisi only) + Jadwal Maintenance + Catatan for all non-guests (and Jadwal Maintenance + Catatan read-only for guests) — so mobile users can still reach management items without the deleted Menu drawer.
+- Dashboard integrates a subtle "Pengingat Maintenance" card between stat cards and the assignment banner — red when due, amber when only upcoming, hidden when clean.
+- All data persists to the live Turso database. The 5 sample schedules remain intact (Maintenance Lift Utama / Service AC Ruang Server / Maintenance Sistem CCTV / Inspeksi APAR / Cek Sistem Smoke Detector).
+- Files created: `src/components/app/views/schedules-view.tsx`, `agent-ctx/8-full-stack-developer.md`.
+- Files modified: `src/components/app/topbar.tsx`, `src/components/app/mobile-nav.tsx`, `src/components/app/sidebar.tsx`, `src/components/app/app-shell.tsx`, `src/components/app/views/dashboard-view.tsx`.
+- Files deleted: `src/components/app/views/settings-view.tsx` (replaced by SchedulesView).
+
+---
+Task ID: 8 (verification + fix)
+Agent: main
+Task: Verify the Maintenance Schedule feature + notification system, fix complete-cycle date logic
+
+Work Log:
+- Added `MaintenanceSchedule` model to prisma schema + pushed DDL to Turso (table + 2 indexes). Seeded 5 sample schedules (1 due today: Maintenance Lift Utama; 2 upcoming within a week: Service AC Ruang Server + Maintenance Sistem CCTV; 2 later: Inspeksi APAR + Cek Sistem Smoke Detector).
+- Created `src/lib/schedule-utils.ts` with date helpers: `startOfDay`, `endOfDay`, `addDays`, `addMonths` (handles month overflow/underflow), `daysBetween`, `computeNextDueDate` (MONTHLY → next dayOfMonth; INTERVAL → start + N months), `frequencyLabel`.
+- Created API routes: `GET/POST /api/schedules`, `GET/PATCH/DELETE /api/schedules/[id]`, `POST /api/schedules/[id]/complete` (advance nextDueDate), `GET /api/notifications` (due + upcoming + later + counts).
+- Updated `src/lib/store.ts`: replaced AppView `'settings'` with `'schedules'` + added `onRehydrateStorage` migration mapping old persisted `view: 'settings'` → `'schedules'`.
+- Delegated UI to subagent: built `schedules-view.tsx` (3 sections: Jatuh Tempo/Segera/Lainnya + Tambah Jadwal dialog + Tandai Selesai/Edit/Hapus actions), functional topbar bell (red badge + Popover with due/upcoming sections + one-time-per-session Sonner toast on load), nav relabel "Pengaturan"→"Jadwal" (mobile + desktop), management items (Lokasi/Kategori/Pengguna) moved into topbar user dropdown for mobile access, dashboard "Pengingat Maintenance" reminder card.
+- **Fixed a bug in the complete cycle**: the original logic did `addMonths(currentDue, 1)` which advanced Oct 7 → Nov 7, ignoring the `dayOfMonth=15` recurrence rule. Rewrote to use `computeNextDueDate` anchored from the start of the month AFTER the current due, so a MONTHLY day-15 schedule correctly advances Oct 7 → Nov 15. Verified: Lift schedule complete → nextDueDate 2026-10-07 → 2026-11-15. ✅
+- Verified via Agent Browser (desktop):
+  1. Login as teknisi → dashboard shows "1 jadwal maintenance jatuh tempo hari ini" reminder card + "Lihat Jadwal" button.
+  2. Topbar bell shows red badge "1". Clicking opens Popover: "Pengingat Maintenance — 1 jatuh tempo · 2 segera" with JATUH TEMPO section (Maintenance Lift Utama, Lobi Utama, "hari ini") + SEGERA section (Service AC "dalam 3 hari", CCTV "dalam 5 hari") + "Lihat semua jadwal" footer.
+  3. Navigated to Jadwal view: "Jadwal Maintenance" title + summary pills (1 Jatuh Tempo / 2 Segera / 5 Aktif) + 3 grouped sections with schedule cards (title, frequency label "Setiap tanggal 15/bulan", location, description, next due date, Tandai Selesai/Edit/Hapus buttons for teknisi).
+  4. Complete cycle API test: POST /api/schedules/[id]/complete → 200, nextDueDate advanced 2026-10-07 → 2026-11-15 (correctly respects dayOfMonth=15), totalDue dropped 1→0.
+- Verified via curl: guest POST /api/schedules → 403; guest GET /api/schedules + /api/notifications → 200 (read-only viewing works, sees the same due + upcoming schedules).
+- `bun run lint` passes (0 errors, 1 pre-existing warning in prisma/seed.ts). dev.log clean.
+- Re-seeded schedules to reset the demo state (1 due + 2 upcoming + 2 later).
+
+Stage Summary:
+- "Pengaturan" menu is now "Jadwal" — a maintenance-schedule manager.
+- Two frequency types: MONTHLY (every day-of-month, e.g. "setiap tanggal 15") and INTERVAL (every N months, e.g. "per 3 bulan").
+- Automatic notification: when a schedule's nextDueDate <= today, the topbar bell shows a red badge + the popover lists it under "Jatuh Tempo" + a one-time Sonner toast fires on app load ("N jadwal maintenance jatuh tempo hari ini"). Upcoming (within 7 days) show under "Segera".
+- Teknisi can create/edit/delete schedules and mark them complete (advances to the next occurrence per the recurrence rule). Guests view everything read-only.
+- Dashboard has a reminder card showing due/upcoming counts.
+- All data persists to the live Turso database.

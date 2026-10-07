@@ -12,10 +12,10 @@ export type AppView =
   | 'categories'
   | 'users'
   | 'notes'
-  | 'settings'
+  | 'schedules'
   | 'profile'
 
-export type NavItem = 'dashboard' | 'reports' | 'locations' | 'categories' | 'users' | 'notes' | 'settings' | 'profile'
+export type NavItem = 'dashboard' | 'reports' | 'locations' | 'categories' | 'users' | 'notes' | 'schedules' | 'profile'
 
 type SessionUser = {
   id: string
@@ -84,6 +84,12 @@ export const useAppStore = create<AppState>()(
         priorityFilter: state.priorityFilter,
         view: state.view,
       }),
+      // Migrate persisted state from older versions.
+      onRehydrateStorage: () => (state) => {
+        if (state && state.view === ('settings' as AppView)) {
+          state.view = 'schedules'
+        }
+      },
     }
   )
 )

@@ -14,7 +14,7 @@ import { CategoriesView } from '@/components/app/views/categories-view'
 import { UsersView } from '@/components/app/views/users-view'
 import { ProfileView } from '@/components/app/views/profile-view'
 import { NotesView } from '@/components/app/views/notes-view'
-import { SettingsView } from '@/components/app/views/settings-view'
+import { SchedulesView } from '@/components/app/views/schedules-view'
 import { cn } from '@/lib/utils'
 
 export function AppShell() {
@@ -56,8 +56,8 @@ function ViewRouter({ view }: { view: string }) {
       return <UsersView />
     case 'notes':
       return <NotesView />
-    case 'settings':
-      return <SettingsView />
+    case 'schedules':
+      return <SchedulesView />
     case 'profile':
       return <ProfileView />
     default:

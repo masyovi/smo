@@ -4,11 +4,11 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/lib/store'
 import {
+  CalendarClock,
   ClipboardList,
   History,
   LayoutDashboard,
   Plus,
-  Settings,
   StickyNote,
   type LucideIcon,
 } from 'lucide-react'
@@ -115,15 +115,12 @@ export function MobileNavWithDrawer() {
             {/* Center FAB — new report (teknisi only) */}
             <FabItem onClick={openNewReport} />
 
-            {/* Pengaturan */}
+            {/* Jadwal */}
             <BottomItem
-              icon={Settings}
-              label="Pengaturan"
-              active={view === 'settings' ||
-                view === 'locations' ||
-                view === 'categories' ||
-                view === 'users'}
-              onClick={() => setView('settings')}
+              icon={CalendarClock}
+              label="Jadwal"
+              active={view === 'schedules'}
+              onClick={() => setView('schedules')}
             />
 
             {/* Catatan */}

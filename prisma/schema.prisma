@@ -26,6 +26,7 @@ model User {
   assignedReports Report[]       @relation("AssigneeReports")
   history         ReportHistory[]
   notes           Note[]
+  schedules       MaintenanceSchedule[]
 
   @@index([role])
 }
@@ -40,6 +41,7 @@ model Location {
   updatedAt   DateTime @updatedAt
 
   reports Report[]
+  maintenanceSchedules MaintenanceSchedule[]
 
   @@index([building])
 }
@@ -114,4 +116,32 @@ model Note {
 
   @@index([authorId])
   @@index([pinned])
+}
+
+// Maintenance Schedule — recurring maintenance reminders.
+// When nextDueDate <= today, the schedule is "due" and a reminder
+// notification surfaces in the topbar bell + on app load.
+// frequency MONTHLY = every `dayOfMonth` (1-31) of each month.
+// frequency INTERVAL = every `intervalMonths` months from `startDate`.
+model MaintenanceSchedule {
+  id               String   @id @default(cuid())
+  title            String
+  description      String?
+  locationId       String?
+  frequency        String   // MONTHLY | INTERVAL
+  dayOfMonth       Int?     // 1-31 for MONTHLY
+  intervalMonths   Int?     // e.g. 3 for INTERVAL
+  startDate         DateTime // anchor / first occurrence
+  nextDueDate      DateTime // computed next due date
+  lastCompletedAt  DateTime?
+  active           Boolean  @default(true)
+  createdBy        String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  location Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  creator  User      @relation(fields: [createdBy], references: [id])
+
+  @@index([active])
+  @@index([nextDueDate])
 }

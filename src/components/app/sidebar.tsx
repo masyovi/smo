@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
+  CalendarClock,
   ClipboardList,
   History,
   LayoutDashboard,
@@ -36,7 +37,9 @@ type NavDef = {
 }
 
 // Main navigation — visible to everyone. Guests see relabeled "Riwayat"
-// instead of "Laporan" but navigate to the same 'reports' view.
+// instead of "Laporan" but navigate to the same 'reports' view. Includes
+// the maintenance schedule view ("Jadwal") for all roles (read-only for
+// guests).
 const MAIN_NAV: NavDef[] = [
   { view: 'dashboard', label: 'Beranda', icon: LayoutDashboard },
   {
@@ -47,11 +50,12 @@ const MAIN_NAV: NavDef[] = [
     iconGuest: History,
   },
   { view: 'notes', label: 'Catatan', icon: StickyNote },
+  { view: 'schedules', label: 'Jadwal', icon: CalendarClock },
 ]
 
-// Management section — Teknisi + ADMIN only. Lives under a "Pengaturan"
-// group header on the desktop sidebar (and behind the Pengaturan hub view
-// on mobile).
+// Management section — Teknisi + ADMIN only. Lives under a "Manajemen"
+// group header on the desktop sidebar (mobile reaches these via the
+// topbar user dropdown menu instead).
 const MANAGEMENT_NAV: NavDef[] = [
   { view: 'locations', label: 'Lokasi', icon: MapPin, roles: ['ADMIN', 'TECHNICIAN'] },
   { view: 'categories', label: 'Kategori', icon: Tag, roles: ['ADMIN', 'TECHNICIAN'] },
@@ -156,7 +160,7 @@ export function Sidebar() {
 
           {canManageAll && managementItems.length > 0 && (
             <>
-              <SectionLabel>Pengaturan</SectionLabel>
+              <SectionLabel>Manajemen</SectionLabel>
               {managementItems.map((item) => (
                 <NavButton key={item.view} item={item} role={user.role} />
               ))}

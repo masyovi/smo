@@ -1,22 +1,31 @@
 'use client'
 
 import * as React from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTheme } from 'next-themes'
 import {
   Bell,
+  BellRing,
+  CalendarClock,
+  CheckCircle2,
   ChevronDown,
+  Clock,
   Eye,
   LogOut,
+  MapPin,
   Moon,
-  Settings,
   StickyNote,
   Sun,
-  User as UserIcon,
+  Tag,
+  UserRound,
+  Users,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -25,10 +34,39 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { useAppStore } from '@/lib/store'
-import { apiFetch, ApiError } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
 import { RoleBadge } from '@/components/app/role-badge'
+import { formatDate } from '@/lib/types'
+import { startOfDay, daysBetween } from '@/lib/schedule-utils'
 import { cn } from '@/lib/utils'
+
+type ScheduleLocation = {
+  id: string
+  name: string
+  building: string
+  floor: string | null
+} | null
+
+type Schedule = {
+  id: string
+  title: string
+  nextDueDate: string
+  location: ScheduleLocation
+}
+
+type NotificationsResponse = {
+  due: Schedule[]
+  upcoming: Schedule[]
+  later: Schedule[]
+  totalDue: number
+  totalUpcoming: number
+}
 
 const TITLES: Record<string, string> = {
   dashboard: 'Beranda',
@@ -39,7 +77,7 @@ const TITLES: Record<string, string> = {
   categories: 'Kategori',
   users: 'Pengguna',
   notes: 'Catatan',
-  settings: 'Pengaturan',
+  schedules: 'Jadwal Maintenance',
   profile: 'Profil Saya',
 }
 
@@ -54,6 +92,16 @@ function initials(name: string) {
     .toUpperCase()
 }
 
+function dueBadge(dueDate: string): { label: string; tone: 'red' | 'amber' } {
+  const due = startOfDay(new Date(dueDate))
+  const today = startOfDay(new Date())
+  const diff = daysBetween(today, due)
+  if (diff === 0) return { label: 'hari ini', tone: 'red' }
+  if (diff < 0) return { label: `terlambat ${Math.abs(diff)} hari`, tone: 'red' }
+  if (diff === 1) return { label: 'dalam 1 hari', tone: 'amber' }
+  return { label: `dalam ${diff} hari`, tone: 'amber' }
+}
+
 export function Topbar() {
   const user = useAppStore((s) => s.user)
   const view = useAppStore((s) => s.view)
@@ -63,14 +111,20 @@ export function Topbar() {
   const [mounted, setMounted] = React.useState(false)
   React.useEffect(() => setMounted(true), [])
 
+  const {
+    data: notifications,
+    isLoading: notificationsLoading,
+  } = useNotifications()
+
   if (!user) return null
   const title = TITLES[view] ?? 'SMO'
   const isGuest = user.role === 'GUEST'
+  const isManager = user.role === 'TECHNICIAN' || user.role === 'ADMIN'
 
   async function handleLogout() {
     try {
       await apiFetch('/api/auth/logout', { method: 'POST', skipJson: true })
-    } catch (e) {
+    } catch {
       // ignore network errors
     } finally {
       logout()
@@ -87,16 +141,14 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-1 sm:gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Notifikasi"
-          className="relative"
-          onClick={() => toast.info('Tidak ada notifikasi baru')}
-        >
-          <Bell className="size-4" />
-          <span className="sr-only">Notifikasi</span>
-        </Button>
+        <NotificationBell
+          due={notifications?.due ?? []}
+          upcoming={notifications?.upcoming ?? []}
+          totalDue={notifications?.totalDue ?? 0}
+          totalUpcoming={notifications?.totalUpcoming ?? 0}
+          loading={notificationsLoading}
+          onGoToSchedules={() => setView('schedules')}
+        />
 
         <Button
           variant="ghost"
@@ -153,34 +205,75 @@ export function Topbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {!isGuest && (
-              <DropdownMenuItem onClick={() => setView('notes')}>
-                <StickyNote className="size-4" />
-                Catatan
-              </DropdownMenuItem>
+
+            {/* Managers: Lokasi/Kategori/Pengguna direct links (mobile access) */}
+            {isManager && (
+              <>
+                <DropdownMenuItem onSelect={() => setView('locations')}>
+                  <MapPin className="size-4" />
+                  Lokasi
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setView('categories')}>
+                  <Tag className="size-4" />
+                  Kategori
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setView('users')}>
+                  <Users className="size-4" />
+                  Pengguna
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
             )}
+
+            {/* All non-guests: Jadwal Maintenance + Catatan */}
             {!isGuest && (
-              <DropdownMenuItem onClick={() => setView('settings')}>
-                <Settings className="size-4" />
-                Pengaturan
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem onSelect={() => setView('schedules')}>
+                  <CalendarClock className="size-4" />
+                  Jadwal Maintenance
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setView('notes')}>
+                  <StickyNote className="size-4" />
+                  Catatan
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
             )}
-            {!isGuest && (
-              <DropdownMenuItem onClick={() => setView('profile')}>
-                <UserIcon className="size-4" />
-                Profil Saya
-              </DropdownMenuItem>
-            )}
+
+            {/* Guest: read-only schedule + notes access */}
             {isGuest && (
-              <DropdownMenuItem disabled>
-                <Eye className="size-4" />
-                Mode tamu — hanya melihat
-              </DropdownMenuItem>
+              <>
+                <DropdownMenuItem onSelect={() => setView('schedules')}>
+                  <CalendarClock className="size-4" />
+                  Jadwal Maintenance
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setView('notes')}>
+                  <StickyNote className="size-4" />
+                  Catatan
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem disabled>
+                  <Eye className="size-4" />
+                  Mode tamu — hanya melihat
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
             )}
-            <DropdownMenuSeparator />
+
+            {/* Profile (non-guest) */}
+            {!isGuest && (
+              <>
+                <DropdownMenuItem onSelect={() => setView('profile')}>
+                  <UserRound className="size-4" />
+                  Profil Saya
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+
             <DropdownMenuItem
               variant="destructive"
-              onClick={handleLogout}
+              onSelect={handleLogout}
               className={cn('text-destructive')}
             >
               <LogOut className="size-4" />
@@ -190,5 +283,240 @@ export function Topbar() {
         </DropdownMenu>
       </div>
     </header>
+  )
+}
+
+// ---------- Notification Bell ----------
+
+function useNotifications() {
+  const user = useAppStore((s) => s.user)
+  const setView = useAppStore((s) => s.setView)
+  const toastShownRef = React.useRef(false)
+
+  const query = useQuery<NotificationsResponse>({
+    queryKey: ['notifications'],
+    queryFn: () => apiFetch<NotificationsResponse>('/api/notifications'),
+    enabled: !!user,
+    refetchInterval: 60_000,
+    refetchOnWindowFocus: true,
+  })
+
+  // Toast on first load (only once per session) when totalDue > 0.
+  React.useEffect(() => {
+    if (!user) return
+    if (toastShownRef.current) return
+    if (query.data && query.data.totalDue > 0) {
+      toastShownRef.current = true
+      toast('Pengingat Maintenance', {
+        description: `${query.data.totalDue} jadwal maintenance jatuh tempo hari ini.`,
+        duration: 6000,
+        action: {
+          label: 'Lihat',
+          onClick: () => setView('schedules'),
+        },
+      })
+    }
+  }, [query.data, user, setView])
+
+  return query
+}
+
+function NotificationBell({
+  due,
+  upcoming,
+  totalDue,
+  totalUpcoming,
+  loading,
+  onGoToSchedules,
+}: {
+  due: Schedule[]
+  upcoming: Schedule[]
+  totalDue: number
+  totalUpcoming: number
+  loading: boolean
+  onGoToSchedules: () => void
+}) {
+  const [open, setOpen] = React.useState(false)
+  const hasNotifications = totalDue > 0 || totalUpcoming > 0
+
+  function goToSchedules() {
+    setOpen(false)
+    onGoToSchedules()
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Pengingat maintenance"
+          className="relative"
+        >
+          {totalDue > 0 ? (
+            <BellRing className="size-4" />
+          ) : (
+            <Bell className="size-4" />
+          )}
+          {totalDue > 0 && (
+            <span
+              className="absolute -top-0.5 -right-0.5 flex min-w-4 h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-background"
+              aria-label={`${totalDue} jadwal jatuh tempo`}
+            >
+              {totalDue > 9 ? '9+' : totalDue}
+            </span>
+          )}
+          <span className="sr-only">Pengingat</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        align="end"
+        className="w-80 p-0 sm:w-96"
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2 border-b px-3 py-2.5">
+          <div className="flex items-center gap-2">
+            <div
+              className={cn(
+                'flex size-7 items-center justify-center rounded-full',
+                totalDue > 0
+                  ? 'bg-red-100 text-red-600 dark:bg-red-950/60 dark:text-red-300'
+                  : 'bg-muted text-muted-foreground'
+              )}
+            >
+              {totalDue > 0 ? (
+                <BellRing className="size-3.5" />
+              ) : (
+                <Bell className="size-3.5" />
+              )}
+            </div>
+            <div>
+              <p className="text-sm font-medium leading-none">Pengingat Maintenance</p>
+              <p className="text-muted-foreground text-[10px] leading-tight">
+                {hasNotifications
+                  ? `${totalDue} jatuh tempo · ${totalUpcoming} segera`
+                  : 'Tidak ada pengingat aktif'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {loading && due.length === 0 && upcoming.length === 0 ? (
+          <div className="px-3 py-6 text-center">
+            <p className="text-muted-foreground text-xs">Memuat pengingat…</p>
+          </div>
+        ) : !hasNotifications ? (
+          <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
+            <div className="flex size-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300">
+              <CheckCircle2 className="size-5" />
+            </div>
+            <p className="text-sm font-medium">Tidak ada pengingat</p>
+            <p className="text-muted-foreground text-xs">
+              Semua jadwal maintenance terpantau.
+            </p>
+          </div>
+        ) : (
+          <ScrollArea className="max-h-96">
+            <div className="divide-y">
+              {due.length > 0 && (
+                <div className="bg-red-50/50 dark:bg-red-950/20">
+                  <div className="px-3 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-red-700 dark:text-red-300">
+                      Jatuh Tempo
+                    </p>
+                  </div>
+                  <ul className="px-1.5 pb-1.5">
+                    {due.map((s) => (
+                      <NotificationItem key={s.id} schedule={s} onClick={goToSchedules} tone="red" />
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {upcoming.length > 0 && (
+                <div className="bg-amber-50/50 dark:bg-amber-950/20">
+                  <div className="px-3 py-1.5">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+                      Segera (7 hari ke depan)
+                    </p>
+                  </div>
+                  <ul className="px-1.5 pb-1.5">
+                    {upcoming.map((s) => (
+                      <NotificationItem key={s.id} schedule={s} onClick={goToSchedules} tone="amber" />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        )}
+
+        {/* Footer */}
+        <Separator />
+        <div className="p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center text-xs"
+            onClick={goToSchedules}
+          >
+            Lihat semua jadwal
+            <ChevronDown className="-rotate-90 size-3.5" />
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+function NotificationItem({
+  schedule,
+  onClick,
+  tone,
+}: {
+  schedule: Schedule
+  onClick: () => void
+  tone: 'red' | 'amber'
+}) {
+  const badge = dueBadge(schedule.nextDueDate)
+  const toneClasses =
+    tone === 'red'
+      ? 'text-red-700 bg-red-100 dark:bg-red-950/60 dark:text-red-300'
+      : 'text-amber-700 bg-amber-100 dark:bg-amber-950/60 dark:text-amber-300'
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full items-start gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-accent"
+      >
+        <div className="min-w-0 flex-1 space-y-0.5">
+          <p className="truncate text-xs font-medium leading-snug">
+            {schedule.title}
+          </p>
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            {schedule.location && (
+              <>
+                <MapPin className="size-3 shrink-0" />
+                <span className="truncate">
+                  {schedule.location.name}
+                  {schedule.location.building ? ` · ${schedule.location.building}` : ''}
+                </span>
+                <span aria-hidden>·</span>
+              </>
+            )}
+            <Clock className="size-3 shrink-0" />
+            <span className="shrink-0">{formatDate(schedule.nextDueDate)}</span>
+          </div>
+        </div>
+        <span
+          className={cn(
+            'shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-medium',
+            toneClasses
+          )}
+        >
+          {badge.label}
+        </span>
+      </button>
+    </li>
   )
 }
