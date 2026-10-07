@@ -23,6 +23,17 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 
 import { apiFetch, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
@@ -129,19 +140,41 @@ export function ProfileView() {
               keluar dan masuk sebagai teknisi.
             </p>
             <Separator />
-            <Button
-              variant="outline"
-              className="w-full justify-center text-destructive hover:text-destructive sm:w-auto"
-              onClick={handleGuestLogout}
-              disabled={loggingOut}
-            >
-              {loggingOut ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <LogOut className="size-4" />
-              )}
-              Keluar
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-center text-destructive hover:text-destructive sm:w-auto"
+                >
+                  <LogOut className="size-4" />
+                  Keluar
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Keluar dari SMO?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Anda akan keluar dari akun tamu dan kembali ke halaman
+                    login.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Batal</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleGuestLogout}
+                    disabled={loggingOut}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {loggingOut ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <LogOut className="size-4" />
+                    )}
+                    Ya, Keluar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </motion.div>

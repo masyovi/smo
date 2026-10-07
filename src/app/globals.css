@@ -122,6 +122,41 @@
     @apply bg-background text-foreground;
   }
 
+  /* Protect app text from being copied — disable text selection globally. */
+  body {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none; /* iOS long-press menu */
+  }
+  /* But keep selection enabled inside form fields so users can still
+     type, select, and copy within inputs / textareas / contenteditable. */
+  input,
+  textarea,
+  [contenteditable],
+  [contenteditable="true"],
+  [role="textbox"] {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  /* Hide the native selection highlight on non-selectable text (any residual
+     drag-select won't show a colored highlight). */
+  ::selection {
+    background: transparent;
+    color: inherit;
+  }
+  /* Keep the selection highlight visible only inside selectable fields. */
+  input::selection,
+  textarea::selection,
+  [contenteditable]::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
   /* Hide the main browser viewport scrollbar for a clean, modern look.
      Scrolling still works — the line on the side is just gone. */
   html,

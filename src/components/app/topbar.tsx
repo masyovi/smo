@@ -32,6 +32,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -105,6 +115,7 @@ export function Topbar() {
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
   const logout = useAppStore((s) => s.logout)
+  const [showLogoutConfirm, setShowLogoutConfirm] = React.useState(false)
 
   const {
     data: notifications,
@@ -260,7 +271,10 @@ export function Topbar() {
 
             <DropdownMenuItem
               variant="destructive"
-              onSelect={handleLogout}
+              onSelect={(e) => {
+                e.preventDefault()
+                setShowLogoutConfirm(true)
+              }}
               className={cn('text-destructive')}
             >
               <LogOut className="size-4" />
@@ -269,6 +283,32 @@ export function Topbar() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Logout confirmation dialog */}
+      <AlertDialog
+        open={showLogoutConfirm}
+        onOpenChange={setShowLogoutConfirm}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keluar dari SMO?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan keluar dari akun ini dan kembali ke halaman login.
+              Pastikan perubahan Anda sudah tersimpan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleLogout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <LogOut className="size-4" />
+              Ya, Keluar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   )
 }

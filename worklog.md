@@ -734,3 +734,25 @@ Work Log:
 
 Stage Summary:
 - The unwanted horizontal line above the Tandai Selesai / Edit / Hapus buttons on the schedule cards is gone. The buttons now flow directly below the card content with clean spacing.
+
+---
+Task ID: 20
+Agent: main
+Task: Add logout confirmation dialog + protect app text from being copied
+
+Work Log:
+- **Logout confirmation** — added an AlertDialog that appears when the user clicks "Keluar":
+  - `src/components/app/topbar.tsx`: added `showLogoutConfirm` state; changed the "Keluar" `DropdownMenuItem` `onSelect` to call `e.preventDefault()` (so the dropdown doesn't auto-close before the dialog opens) and `setShowLogoutConfirm(true)`. Added a controlled `<AlertDialog>` after the `</DropdownMenu>` with title "Keluar dari SMO?", description "Anda akan keluar dari akun ini dan kembali ke halaman login. Pastikan perubahan Anda sudah tersimpan.", a "Batal" cancel button, and a destructive "Ya, Keluar" action button that calls `handleLogout`. Imported the AlertDialog shadcn components.
+  - `src/components/app/views/profile-view.tsx`: wrapped the guest "Keluar" button in an `<AlertDialog>` (with `<AlertDialogTrigger asChild>`). Same confirm text + destructive "Ya, Keluar" action that calls `handleGuestLogout`. Added the AlertDialog import.
+- **Text protection** — disabled text selection/copy globally in `src/app/globals.css` (@layer base):
+  - `body { user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; -webkit-touch-callout: none; }` — no selecting/copying app text, no iOS long-press menu.
+  - Re-enabled selection for form fields: `input, textarea, [contenteditable], [contenteditable="true"], [role="textbox"] { user-select: text; -webkit-touch-callout: default; }` — users can still type, select, and copy within inputs/textareas.
+  - `::selection { background: transparent; color: inherit; }` — hides the selection highlight on non-selectable text (any residual drag-select shows nothing). Selection highlight kept for inputs/textareas (`input::selection, textarea::selection, [contenteditable]::selection` → primary bg).
+- Verified via Agent Browser:
+  - **Logout confirmation**: opened the topbar user dropdown (7 menu items: Lokasi, Kategori, Pengguna, Jadwal Maintenance, Catatan, Profil Saya, Keluar), clicked "Keluar" → the AlertDialog appeared with text "Keluar dari SMO? Anda akan keluar dari akun ini dan kembali ke halaman login…". Clicking "Batal" closed the dialog and stayed logged in. ✅
+  - **Text protection**: `window.getSelection().toString()` on the body h2 = empty string (can't select body text). On a form input, `setSelectionRange(0,7)` → selected "test123" (input selection still works). ✅
+  - `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean (HTTP 200).
+
+Stage Summary:
+- Clicking "Keluar" (topbar user menu OR guest profile card) now shows a confirmation dialog ("Keluar dari SMO?") with Batal / Ya, Keluar buttons — no more accidental logouts.
+- App text (labels, headings, descriptions, badges, etc.) can no longer be selected or copied; the iOS long-press callout is disabled too. Form inputs/textareas remain fully usable (type, select, copy within fields).
