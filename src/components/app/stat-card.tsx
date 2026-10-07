@@ -16,31 +16,49 @@ type StatCardProps = {
 
 const toneMap: Record<
   NonNullable<StatCardProps['tone']>,
-  { iconBg: string; iconFg: string }
+  { bar: string; glow: string; iconBg: string; iconFg: string; value: string }
 > = {
   emerald: {
-    iconBg: 'bg-emerald-100 dark:bg-emerald-950/50',
+    bar: 'bg-emerald-500',
+    glow: 'bg-emerald-400/25',
+    iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
     iconFg: 'text-emerald-600 dark:text-emerald-400',
+    value: 'text-emerald-700 dark:text-emerald-300',
   },
   amber: {
-    iconBg: 'bg-amber-100 dark:bg-amber-950/50',
+    bar: 'bg-amber-500',
+    glow: 'bg-amber-400/25',
+    iconBg: 'bg-amber-500/10 dark:bg-amber-500/15',
     iconFg: 'text-amber-600 dark:text-amber-400',
+    value: 'text-amber-700 dark:text-amber-300',
   },
   blue: {
-    iconBg: 'bg-blue-100 dark:bg-blue-950/50',
+    bar: 'bg-blue-500',
+    glow: 'bg-blue-400/25',
+    iconBg: 'bg-blue-500/10 dark:bg-blue-500/15',
     iconFg: 'text-blue-600 dark:text-blue-400',
+    value: 'text-blue-700 dark:text-blue-300',
   },
   red: {
-    iconBg: 'bg-red-100 dark:bg-red-950/50',
+    bar: 'bg-red-500',
+    glow: 'bg-red-400/25',
+    iconBg: 'bg-red-500/10 dark:bg-red-500/15',
     iconFg: 'text-red-600 dark:text-red-400',
+    value: 'text-red-700 dark:text-red-300',
   },
   slate: {
-    iconBg: 'bg-slate-100 dark:bg-slate-800/50',
+    bar: 'bg-slate-400',
+    glow: 'bg-slate-300/25',
+    iconBg: 'bg-slate-500/10 dark:bg-slate-400/15',
     iconFg: 'text-slate-600 dark:text-slate-300',
+    value: 'text-slate-700 dark:text-slate-200',
   },
   purple: {
-    iconBg: 'bg-purple-100 dark:bg-purple-950/50',
+    bar: 'bg-purple-500',
+    glow: 'bg-purple-400/25',
+    iconBg: 'bg-purple-500/10 dark:bg-purple-500/15',
     iconFg: 'text-purple-600 dark:text-purple-400',
+    value: 'text-purple-700 dark:text-purple-300',
   },
 }
 
@@ -54,25 +72,48 @@ export function StatCard({
 }: StatCardProps) {
   const t = toneMap[tone]
   return (
-    <Card className={cn('overflow-hidden', className)}>
-      <CardContent className="flex items-center gap-4 px-4 py-4 sm:px-6 sm:py-5">
-        <div
-          className={cn(
-            'flex size-11 shrink-0 items-center justify-center rounded-xl',
-            t.iconBg
-          )}
-        >
-          <Icon className={cn('size-5', t.iconFg)} />
-        </div>
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-2xl font-semibold tabular-nums leading-none">
-            {value}
-          </span>
-          <span className="text-muted-foreground text-xs sm:text-sm">
+    <Card
+      className={cn(
+        'group relative overflow-hidden border-border/50 py-0 transition-all hover:border-border hover:shadow-md hover:shadow-foreground/5',
+        className
+      )}
+    >
+      {/* Top accent bar */}
+      <div className={cn('absolute inset-x-0 top-0 h-[3px]', t.bar)} />
+      {/* Corner glow */}
+      <div
+        className={cn(
+          'pointer-events-none absolute -right-8 -top-8 size-24 rounded-full blur-2xl transition-opacity group-hover:opacity-100',
+          t.glow
+        )}
+      />
+      <CardContent className="relative flex flex-col gap-2 px-4 py-3 sm:px-4">
+        <div className="flex items-center justify-between">
+          <span className="truncate text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             {label}
           </span>
+          <div
+            className={cn(
+              'flex size-7 items-center justify-center rounded-lg',
+              t.iconBg
+            )}
+          >
+            <Icon className={cn('size-3.5', t.iconFg)} />
+          </div>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span
+            className={cn(
+              'text-2xl font-bold tabular-nums leading-none tracking-tight',
+              t.value
+            )}
+          >
+            {value}
+          </span>
           {sub && (
-            <span className="text-muted-foreground/80 text-[11px]">{sub}</span>
+            <span className="truncate text-[10px] text-muted-foreground/80">
+              {sub}
+            </span>
           )}
         </div>
       </CardContent>

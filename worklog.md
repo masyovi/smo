@@ -488,3 +488,38 @@ Stage Summary:
 - The app now has a polished, sophisticated background in both light & dark mode: a subtle vertical gradient + soft emerald/teal glow orbs + a faint dot-grid pattern + a top sheen.
 - Cards and sidebar remain opaque and readable; the decorative background shows through the content area's gaps and behind transparent surfaces.
 - The login screen's form panel now also shows the decorative background (dot grid + gradient) instead of plain white.
+
+---
+Task ID: 11
+Agent: main
+Task: Redesign dashboard stat cards — smaller, more attractive; tighten overall dashboard layout
+
+Work Log:
+- Root cause of "kotak kotak terlalu besar": the old StatCard used `size-11` icon + `text-2xl` number + heavy `py-4 sm:py-5` padding in a horizontal icon-left layout, giving each card ~80px tall of wasted vertical space. The dashboard also used generous `space-y-6` + `gap-4` and tall charts (h-48/h-56).
+- Completely redesigned `src/components/app/stat-card.tsx`:
+  - New compact vertical layout: label on top (uppercase, 11px, muted) → bold colored number below (text-2xl, tone-colored) → tiny sub-label inline.
+  - Icon moved to top-right, shrunk to `size-7` container / `size-3.5` icon, with a tinted background (tone/10 opacity).
+  - Added a **thin 3px colored accent bar** at the top of each card (tone-colored) — a minimal visual anchor that replaces heavy background fills.
+  - Added a **soft corner glow** (blurred 24-size circle, tone/25 opacity) in the top-right corner for depth/sophistication, intensifying on hover.
+  - Padding tightened to `py-3 px-4` (from `py-4 sm:py-5`).
+  - Hover state: border + shadow lift for interactivity.
+  - Number is now tone-colored (emerald/blue/red/slate) for instant visual scanning.
+- Tightened `src/components/app/views/dashboard-view.tsx`:
+  - Root spacing `space-y-6` → `space-y-4`.
+  - Stat grid gap `gap-3 sm:gap-4` → `gap-2.5 sm:gap-3`.
+  - "Darurat Aktif" sub-label shortened from "Prioritas URGENT yang belum selesai" → "URGENT".
+  - Greeting subtitle `text-sm` → `text-xs sm:text-sm`; "Buat Laporan" button → `size="sm"`.
+  - Charts: gap `gap-4` → `gap-3`; chart cards `py-0` + tighter `CardHeader` (pb-1 pt-4) + `CardContent` pb-3.
+  - Donut chart height `h-48` → `h-36`, innerRadius 45→32, outerRadius 75→56. Legend text-sm→text-xs, dot size-2.5→size-2, gap-2→gap-1.5.
+  - Bar chart height `h-56` → `h-44`, axis fontSize 11→10, YAxis width 28, barSize 26, tighter margins, smaller tooltip padding/fontSize.
+  - Chart titles `text-base` → `text-sm`, descriptions `text-xs` → `text-[11px]` with shorter copy.
+- Verified via z-ai vision (VLM) on screenshots:
+  - Before: "oversized for kontennya, vertical space berlebih (~40-50px padding), proporsi ikon vs teks kurang".
+  - After (guest): "appropriately compact, modern, clean, visually attractive — similar to Linear/Vercel. Thin colored top accent bar (color-coded per metric), corner glow for depth, small icon top-right, tone-colored bold number".
+  - Final verdict: "compact and modern, a significant improvement over traditional oversized dashboard boxes".
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean.
+
+Stage Summary:
+- Dashboard stat cards are now ~40% smaller and significantly more attractive: vertical label-on-top layout, tone-colored accent bar, corner glow, small tinted icon, bold colored number, hover lift.
+- The whole dashboard is denser: tighter spacing, smaller charts (h-36/h-44), compact chart typography, tighter grid gaps.
+- Same information density, much less wasted space — feels like a modern SaaS dashboard (Linear/Vercel-style) instead of chunky boxes.

@@ -126,7 +126,7 @@ export function DashboardView() {
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
-      className="space-y-6"
+      className="space-y-4"
     >
       {/* Greeting */}
       <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -134,12 +134,12 @@ export function DashboardView() {
           <h2 className="text-lg font-semibold tracking-tight sm:text-xl">
             Halo, {user.name.split(' ')[0]} 👋
           </h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-xs text-muted-foreground sm:text-sm">
             Ringkasan aktivitas laporan kerusakan hari ini.
           </p>
         </div>
         {!isGuest && (
-          <Button onClick={openNewReport} className="self-start sm:self-auto">
+          <Button onClick={openNewReport} size="sm" className="self-start sm:self-auto">
             <Plus className="size-4" />
             Buat Laporan
           </Button>
@@ -171,7 +171,7 @@ export function DashboardView() {
       )}
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
         <StatCard
           label="Total Laporan"
           value={data.totalReports}
@@ -195,7 +195,7 @@ export function DashboardView() {
           value={data.urgentOpen}
           icon={AlertTriangle}
           tone="red"
-          sub="Prioritas URGENT yang belum selesai"
+          sub="URGENT"
         />
       </div>
 
@@ -273,24 +273,24 @@ export function DashboardView() {
       )}
 
       {/* Charts */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Laporan per Status</CardTitle>
-            <CardDescription className="text-xs">
-              Distribusi laporan berdasarkan status saat ini
+      <div className="grid gap-3 lg:grid-cols-2">
+        <Card className="py-0">
+          <CardHeader className="pb-1 pt-4">
+            <CardTitle className="text-sm">Laporan per Status</CardTitle>
+            <CardDescription className="text-[11px]">
+              Distribusi berdasarkan status saat ini
             </CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-2 px-4 sm:grid-cols-2 sm:px-6">
-            <div className="h-48">
+          <CardContent className="grid gap-2 px-4 pb-3 sm:grid-cols-2 sm:px-6">
+            <div className="h-36">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={statusData}
                     dataKey="value"
                     nameKey="name"
-                    innerRadius={45}
-                    outerRadius={75}
+                    innerRadius={32}
+                    outerRadius={56}
                     paddingAngle={2}
                     stroke="none"
                   >
@@ -302,46 +302,47 @@ export function DashboardView() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <ul className="flex flex-col justify-center gap-2 text-sm">
+            <ul className="flex flex-col justify-center gap-1.5 text-xs">
               {statusData.map((s) => (
                 <li key={s.key} className="flex items-center justify-between gap-2">
                   <span className="flex items-center gap-2">
                     <span
-                      className="size-2.5 rounded-full"
+                      className="size-2 rounded-full"
                       style={{ backgroundColor: s.color }}
                     />
                     <span className="text-muted-foreground">{s.name}</span>
                   </span>
-                  <span className="font-medium tabular-nums">{s.value}</span>
+                  <span className="font-semibold tabular-nums">{s.value}</span>
                 </li>
               ))}
             </ul>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">Laporan per Prioritas</CardTitle>
-            <CardDescription className="text-xs">
-              Distribusi laporan berdasarkan tingkat prioritas
+        <Card className="py-0">
+          <CardHeader className="pb-1 pt-4">
+            <CardTitle className="text-sm">Laporan per Prioritas</CardTitle>
+            <CardDescription className="text-[11px]">
+              Distribusi berdasarkan tingkat prioritas
             </CardDescription>
           </CardHeader>
-          <CardContent className="px-4 pb-4 sm:px-6">
-            <div className="h-56">
+          <CardContent className="px-4 pb-3 sm:px-6">
+            <div className="h-44">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={priorityData} margin={{ left: -16, right: 8, top: 8 }}>
+                <BarChart data={priorityData} margin={{ left: -18, right: 8, top: 4, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={11} stroke="var(--muted-foreground)" />
-                  <YAxis tickLine={false} axisLine={false} fontSize={11} stroke="var(--muted-foreground)" allowDecimals={false} />
+                  <XAxis dataKey="name" tickLine={false} axisLine={false} fontSize={10} stroke="var(--muted-foreground)" />
+                  <YAxis tickLine={false} axisLine={false} fontSize={10} stroke="var(--muted-foreground)" allowDecimals={false} width={28} />
                   <Tooltip
                     contentStyle={{
                       background: 'var(--popover)',
                       border: '1px solid var(--border)',
                       borderRadius: 8,
-                      fontSize: 12,
+                      fontSize: 11,
+                      padding: '4px 8px',
                     }}
                   />
-                  <Bar dataKey="value" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="value" radius={[5, 5, 0, 0]} barSize={26} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
