@@ -3,7 +3,6 @@
 import * as React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { useTheme } from 'next-themes'
 import {
   Bell,
   BellRing,
@@ -14,9 +13,7 @@ import {
   Eye,
   LogOut,
   MapPin,
-  Moon,
   StickyNote,
-  Sun,
   Tag,
   UserRound,
   Users,
@@ -107,9 +104,6 @@ export function Topbar() {
   const view = useAppStore((s) => s.view)
   const setView = useAppStore((s) => s.setView)
   const logout = useAppStore((s) => s.logout)
-  const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = React.useState(false)
-  React.useEffect(() => setMounted(true), [])
 
   const {
     data: notifications,
@@ -149,25 +143,6 @@ export function Topbar() {
           loading={notificationsLoading}
           onGoToSchedules={() => setView('schedules')}
         />
-
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Ganti tema"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="size-9 rounded-lg transition-transform hover:scale-105"
-        >
-          {mounted && theme === 'dark' ? (
-            <span className="flex size-full items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
-              <Sun className="size-4" />
-            </span>
-          ) : (
-            <span className="flex size-full items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
-              <Moon className="size-4" />
-            </span>
-          )}
-          <span className="sr-only">Ganti tema</span>
-        </Button>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

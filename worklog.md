@@ -603,3 +603,20 @@ Stage Summary:
   - Empty states: gradient emerald circle + soft glow behind icon.
   - Report detail tiles: per-tile gradient icon bgs (Lokasi=teal, Kategori=rose, Pelapor=cyan, Ditugaskan=emerald).
   - Dashboard banners: gradient icon circles.
+
+---
+Task ID: 14
+Agent: main
+Task: Remove the dark mode feature entirely
+
+Work Log:
+- Removed the theme toggle button from `src/components/app/topbar.tsx`: deleted the `<Button aria-label="Ganti tema">` block (~18 lines), the `useTheme` import, the `const { theme, setTheme } = useTheme()` line, the `mounted`/`setMounted` state + effect (only used by the toggle), and the now-unused `Moon`/`Sun` lucide imports.
+- Fixed a duplicate-import error (my edit added `import { useAppStore }` but it was already imported further down) → removed the duplicate line. Server returned to HTTP 200.
+- Updated `src/app/layout.tsx`: changed the `ThemeProvider` props from `defaultTheme="light" enableSystem` → `forcedTheme="light" enableSystem={false}`. This forces light mode at all times, ignoring any persisted/system dark preference. `useTheme()` (still used by `src/components/ui/sonner.tsx`) now always returns `"light"`, so the toaster stays light-themed.
+- The `dark:` Tailwind variants in components and the `.dark` CSS block in `globals.css` are now dead code (never applied because `<html>` always has `class="light"`). Left in place to avoid a large churn with no functional benefit.
+- Verified via Agent Browser (after clearing localStorage + cookies): `<html>` class = `"light"`, `classList.contains('dark')` = false; no "Ganti tema" button in the topbar (only "Pengingat maintenance" + "Menu pengguna" remain).
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean.
+
+Stage Summary:
+- Dark mode is fully removed: the theme toggle button is gone, the app is permanently in light mode (forced via ThemeProvider), and the `<html>` element always has `class="light"`.
+- Users can no longer toggle dark mode; the app stays light in all conditions.
