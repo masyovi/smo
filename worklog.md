@@ -523,3 +523,25 @@ Stage Summary:
 - Dashboard stat cards are now ~40% smaller and significantly more attractive: vertical label-on-top layout, tone-colored accent bar, corner glow, small tinted icon, bold colored number, hover lift.
 - The whole dashboard is denser: tighter spacing, smaller charts (h-36/h-44), compact chart typography, tighter grid gaps.
 - Same information density, much less wasted space — feels like a modern SaaS dashboard (Linear/Vercel-style) instead of chunky boxes.
+
+---
+Task ID: 12
+Agent: main
+Task: Hide the side scrollbar ("garis scroll di samping") for a clean modern look
+
+Work Log:
+- Updated `src/app/globals.css`:
+  - Added rules to hide the main browser viewport scrollbar: `html, body { scrollbar-width: none }` (Firefox) + `html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; display: none }` (Chromium/Safari). Scrolling still works — the visible "garis" line on the side is just gone.
+  - Thinned the `.scrollbar-thin` utility (8px → 6px) for inner scroll containers.
+  - Added auto-fade styling for the shadcn/Radix ScrollArea component: hid the native viewport scrollbar (`[data-radix-scroll-area-viewport]`), and made the Radix custom scrollbar (`[data-slot="scroll-area-scrollbar"]`) `opacity:0` by default with a 0.25s transition, visible only on hover or when Radix sets `data-state="visible"`. The thumb uses `color-mix(in oklch, var(--muted-foreground) 35%, transparent)` for a subtle look that intensifies on hover.
+- Hit a stale Turbopack CSS cache (the old `var(--muted-foreground/35)` invalid syntax kept returning a 500 even after editing to `color-mix`). Fixed by killing all `next dev` processes, clearing `.next/`, and restarting the dev server fresh via `start-stop-daemon`. The CSS then compiled cleanly.
+- Verified via Agent Browser:
+  - `window.innerWidth === document.documentElement.clientWidth` (diff = 0) → no scrollbar consuming width.
+  - Page still scrolls: `scrollTo(0, 400)` → `scrollY: 400` (content height 1409px > viewport 700px).
+  - z-ai vision (VLM) on screenshot: "the right edge is clean with no visible scrollbar".
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean (no CSS errors).
+
+Stage Summary:
+- The vertical scrollbar line on the right side of the page is now hidden for a clean, modern look (like Linear/Vercel/Notion).
+- Scrolling still works via wheel/trackpad/touch — only the visible "garis" is removed.
+- Inner scroll containers (sidebar, topbar dropdown) use an auto-fading thin scrollbar that only appears on hover, so no persistent line sits on the side.

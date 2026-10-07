@@ -121,14 +121,29 @@
   body {
     @apply bg-background text-foreground;
   }
-  /* Custom thin scrollbar */
+
+  /* Hide the main browser viewport scrollbar for a clean, modern look.
+     Scrolling still works — the line on the side is just gone. */
+  html,
+  body {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE / old Edge */
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
+  }
+
+  /* Custom thin scrollbar utility — used on inner scroll containers. */
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
   .scrollbar-thin::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
   .scrollbar-thin::-webkit-scrollbar-track {
     background: transparent;
@@ -141,3 +156,30 @@
     background-color: var(--muted-foreground);
   }
 }
+
+/* Radix ScrollArea (shadcn) — make its scrollbar auto-fade so it doesn't
+   sit as a permanent "garis" on the side. Only visible while the pointer is
+   over the scroll area (Radix toggles data-state="visible"/"hidden"). */
+[data-radix-scroll-area-viewport] {
+  scrollbar-width: none; /* Firefox — hide native, Radix draws its own */
+}
+[data-radix-scroll-area-viewport]::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+[data-slot="scroll-area-scrollbar"] {
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+[data-slot="scroll-area-scrollbar"][data-state="visible"],
+[data-slot="scroll-area-scrollbar"]:hover {
+  opacity: 1;
+}
+[data-slot="scroll-area-scrollbar"] > * {
+  background-color: color-mix(in oklch, var(--muted-foreground) 35%, transparent) !important;
+}
+[data-slot="scroll-area-scrollbar"]:hover > * {
+  background-color: var(--muted-foreground) !important;
+}
+
