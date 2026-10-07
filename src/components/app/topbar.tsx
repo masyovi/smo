@@ -52,6 +52,7 @@ import { RoleBadge } from '@/components/app/role-badge'
 import { Brand } from '@/components/app/brand'
 import { formatDate } from '@/lib/types'
 import { startOfDay, daysBetween } from '@/lib/schedule-utils'
+import { useDeviceNotifications } from '@/lib/use-push-notifications'
 import { cn } from '@/lib/utils'
 
 type ScheduleLocation = {
@@ -319,6 +320,7 @@ function useNotifications() {
   const user = useAppStore((s) => s.user)
   const setView = useAppStore((s) => s.setView)
   const toastShownRef = React.useRef(false)
+  const deviceNotifiedKeyRef = React.useRef<string>('')
 
   const query = useQuery<NotificationsResponse>({
     queryKey: ['notifications'],
@@ -327,6 +329,8 @@ function useNotifications() {
     refetchInterval: 60_000,
     refetchOnWindowFocus: true,
   })
+
+  const { permission, requestPermission, notify } = useDeviceNotifications()
 
   // Toast on first load (only once per session) when totalDue > 0.
   React.useEffect(() => {
@@ -345,7 +349,89 @@ function useNotifications() {
     }
   }, [query.data, user, setView])
 
-  return query
+  // Ask the user to enable device notifications (once per browser session)
+  // when there are due schedules and permission is still "default".
+  React.useEffect(() => {
+    if (!user) return
+    if (permission !== 'default') return
+    if (!query.data || query.data.totalDue === 0) return
+    let asked = false
+    try {
+      asked = sessionStorage.getItem('smo-asked-push') === '1'
+    } catch {
+      asked = false
+    }
+    if (asked) return
+    try {
+      sessionStorage.setItem('smo-asked-push', '1')
+    } catch {
+      // ignore
+    }
+    toast('Aktifkan notifikasi perangkat?', {
+      description:
+        'Dapatkan pengingat maintenance otomatis di layar Anda saat jadwal jatuh tempo.',
+      duration: 10000,
+      action: {
+        label: 'Aktifkan',
+        onClick: () => {
+          requestPermission().then((p) => {
+            if (p === 'granted') {
+              toast.success('Notifikasi diaktifkan', {
+                description: 'Pengingat maintenance akan muncul di perangkat Anda.',
+              })
+              // Fire one immediately so the user sees it working.
+              const d = query.data
+              if (d && d.totalDue > 0) {
+                fireDeviceNotification(d)
+              }
+            } else if (p === 'denied') {
+              toast.error('Notifikasi diblokir', {
+                description: 'Anda bisa mengaktifkan kembali via pengaturan browser.',
+              })
+            }
+          })
+        },
+      },
+      cancel: { label: 'Nanti', onClick: () => {} },
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permission, query.data, user])
+
+  // Build a de-dup key from the set of due schedule IDs so we only fire a
+  // device notification when the due set actually changes (not every 60s poll).
+  function fireDeviceNotification(d: NotificationsResponse) {
+    const dueTitles = d.due.map((s) => s.title).join(', ')
+    const upTitles = d.upcoming.map((s) => s.title).join(', ')
+    const key = `due:${d.due.map((s) => s.id).join('|')}|up:${d.upcoming
+      .map((s) => s.id)
+      .join('|')}`
+    if (key === deviceNotifiedKeyRef.current) return
+    deviceNotifiedKeyRef.current = key
+
+    const parts: string[] = []
+    if (d.totalDue > 0) {
+      parts.push(
+        `${d.totalDue} jadwal jatuh tempo: ${dueTitles}`
+      )
+    }
+    if (d.totalUpcoming > 0) {
+      parts.push(`${d.totalUpcoming} segera (${upTitles})`)
+    }
+    const body = parts.join('. ') + '. Buka SMO untuk menindaklanjuti.'
+    notify('SMO — Pengingat Maintenance', body, { tag: 'smo-maintenance-due' })
+  }
+
+  // Fire the OS notification when due schedules are detected (de-duped).
+  React.useEffect(() => {
+    if (!user) return
+    if (permission !== 'granted') return
+    if (!query.data) return
+    if (query.data.totalDue === 0 && query.data.totalUpcoming === 0) return
+    fireDeviceNotification(query.data)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [permission, query.data, user])
+
+  return { ...query, permission, requestPermission }
 }
 
 function NotificationBell({

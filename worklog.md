@@ -791,3 +791,36 @@ Work Log:
 Stage Summary:
 - The Riwayat Laporan view now has **Export CSV** (downloads a `.csv` file with all loaded reports, Excel-friendly with BOM) and **Cetak PDF** (opens a clean printable report in a new window + auto-opens the browser print dialog so the user can save as PDF). Both respect the current filters (status/priority/search) — only the reports currently shown are exported/printed.
 - Also fixed the recurring `.env` reset issue (chmod 444 protects the Turso URL) — the app is now stably connected to Turso again.
+
+---
+Task ID: 22
+Agent: main
+Task: Add device push notifications for maintenance reminders (with descriptions)
+
+Work Log:
+- Created `public/sw.js` — a service worker that:
+  - Activates immediately (`skipWaiting` + `clients.claim`).
+  - Handles `notificationclick` — focuses an existing app tab (or opens a new one) and posts a message so the app can navigate.
+  - Handles `push` events (for future server-side push) by calling `registration.showNotification`.
+- Created `src/lib/use-push-notifications.ts` — a `useDeviceNotifications()` hook (client) that:
+  - Registers the SW on mount (`navigator.serviceWorker.register('/sw.js')`).
+  - Tracks the `Notification.permission` state (`'default' | 'granted' | 'denied' | 'unsupported'`).
+  - Exposes `requestPermission()` (calls `Notification.requestPermission()`).
+  - Exposes `notify(title, body, opts?)` — shows an OS-level notification via `registration.showNotification` (falls back to the direct `Notification` API if the SW isn't available). Uses the SMO icon (`/smo-icon.png`) as the notification icon/badge, a tag for de-dup, `renotify: true`, and `data: { url: '/' }` for click handling.
+- Integrated into the Topbar's `useNotifications()` hook (`src/components/app/topbar.tsx`):
+  - **Permission prompt**: when there are due schedules AND permission is still `'default'`, show a Sonner toast "Aktifkan notifikasi perangkat?" with an "Aktifkan" action button (once per browser session, de-duped via `sessionStorage['smo-asked-push']`). Clicking it calls `requestPermission()`; on `'granted'` → toast.success + fires a device notification immediately so the user sees it working; on `'denied'` → toast.error with a hint to re-enable via browser settings.
+  - **Fire OS notifications**: when permission is `'granted'` AND the due/upcoming set is non-empty, call `notify('SMO — Pengingat Maintenance', body)` where `body` = "N jadwal jatuh tempo: <title1>, <title2>. M segera (<title3>…). Buka SMO untuk menindaklanjuti." De-duplicated by a key built from the due + upcoming schedule IDs (so it only fires when the set changes, not every 60s poll).
+- Verified via Agent Browser (guest login):
+  - `Notification.permission = 'default'` → API supported. ✅
+  - `navigator.serviceWorker.getRegistrations()` → 1 registration → SW registered. ✅
+  - After clearing sessionStorage, two toasts appeared on load: "Aktifkan notifikasi perangkat? Dapatkan pengingat maintenance otomatis di layar Anda…" (with Aktifkan/Nanti actions) AND the existing "Pengingat Maintenance — 1 jadwal…". ✅
+  - Clicking "Aktifkan" calls `requestPermission()` (in headless Chrome the native permission prompt can't be granted without a real UI, so permission stays 'default' — but the code path is correct; in a real browser the user gets the OS prompt and can grant it).
+- The OS notification body (keterangan) includes the actual schedule titles + counts: e.g. "1 jadwal jatuh tempo: Maintenance Lift Utama. 2 segera (Service AC Ruang Server, Maintenance Sistem CCTV). Buka SMO untuk menindaklanjuti."
+- `bun run lint` passes (0 errors, 3 intentional `react-hooks/exhaustive-deps` warnings). dev.log clean. `/sw.js` served (HTTP 200).
+
+Stage Summary:
+- Maintenance reminders now surface as **device-level push notifications** (OS notifications, visible in the system notification center / lock screen / desktop) in addition to the in-app bell + toast.
+- Flow: app loads → if due schedules exist and notifications aren't enabled, a toast asks "Aktifkan notifikasi perangkat?" → user clicks "Aktifkan" → browser shows the native permission prompt → on "Allow", an OS notification fires immediately (and on future due-schedule detections) with the title "SMO — Pengingat Maintenance", the body listing the due + upcoming schedule names, the SMO icon, and a click handler that focuses the app.
+- De-duplicated by schedule IDs so it won't spam every 60s poll.
+- Service worker (`/sw.js`) handles the notification display + click-to-focus.
+- Requires HTTPS or localhost for SW registration (works in the user's real browser via the gateway/preview).
