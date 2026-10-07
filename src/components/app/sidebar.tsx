@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { cn } from '@/lib/utils'
 import { useAppStore, type AppView } from '@/lib/store'
 import { Brand } from '@/components/app/brand'
+import { NAV_TONES, TONE_CLASSES } from '@/components/app/nav-tones'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -83,26 +84,66 @@ function NavButton({ item, role }: { item: NavDef; role: string }) {
   const label = isGuest && item.labelGuest ? item.labelGuest : item.label
   const active = view === item.view
 
+  // Active state also lights up when we're inside a sub-view that belongs
+  // to the same nav item (e.g. report-detail belongs to the "Laporan" item).
+  const subActive =
+    !active &&
+    ((item.view === 'reports' &&
+      (view === 'report-detail' || view === 'report-new')) ||
+      (item.view === 'dashboard' && view === 'report-new'))
+
+  const toneKey = NAV_TONES[item.view] ?? 'slate'
+  const tone = TONE_CLASSES[toneKey]
+  const isActive = active || subActive
+
   return (
     <button
       type="button"
       onClick={() => setView(item.view)}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-        'hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-        active && 'bg-sidebar-accent text-sidebar-accent-foreground shadow-sm'
+        'group relative flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm transition-colors',
+        'hover:bg-sidebar-accent',
+        isActive && 'bg-sidebar-accent'
       )}
     >
-      <Icon
+      {/* Left accent bar — only on active */}
+      {isActive && (
+        <span
+          className={cn(
+            'absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full',
+            tone.dot
+          )}
+          aria-hidden
+        />
+      )}
+
+      {/* Icon container */}
+      <span
         className={cn(
-          'size-4 shrink-0 transition-colors',
-          active
-            ? 'text-primary'
-            : 'text-muted-foreground group-hover:text-sidebar-accent-foreground'
+          'flex size-8 shrink-0 items-center justify-center rounded-lg transition-colors',
+          isActive ? tone.gradient : cn('bg-transparent', tone.tintHover)
         )}
-      />
-      <span>{label}</span>
+        aria-hidden
+      >
+        <Icon
+          className={cn(
+            'size-4 shrink-0 transition-colors',
+            isActive
+              ? tone.iconActive
+              : tone.iconIdle
+          )}
+        />
+      </span>
+
+      <span
+        className={cn(
+          'flex-1 truncate text-left transition-colors',
+          isActive ? 'font-semibold text-foreground' : 'text-muted-foreground group-hover:text-foreground'
+        )}
+      >
+        {label}
+      </span>
     </button>
   )
 }
@@ -140,12 +181,17 @@ export function Sidebar() {
 
       <div className="px-3 py-3">
         {isGuest ? (
-          <div className="flex items-center gap-2 rounded-lg border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-            <Eye className="size-3.5 shrink-0" />
+          <div className="flex items-center gap-2 rounded-lg border border-dashed bg-teal-500/5 px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-teal-500/10">
+            <span className="flex size-6 items-center justify-center rounded-md bg-teal-500/10 text-teal-600 dark:bg-teal-500/15 dark:text-teal-300">
+              <Eye className="size-3.5 shrink-0" />
+            </span>
             <span className="leading-tight">Mode tamu — hanya melihat</span>
           </div>
         ) : (
-          <Button className="w-full justify-start gap-2" onClick={openNewReport}>
+          <Button
+            className="w-full justify-start gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-sm shadow-emerald-500/30 transition-transform hover:from-emerald-600 hover:to-teal-700 hover:shadow-md hover:shadow-emerald-500/40"
+            onClick={openNewReport}
+          >
             <Plus className="size-4" />
             Buat Laporan
           </Button>

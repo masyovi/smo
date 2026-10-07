@@ -30,8 +30,17 @@ export function EmptyState({
         className
       )}
     >
-      <div className="flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
-        <Icon className="size-6" />
+      <div className="relative flex items-center justify-center">
+        {/* Soft glow behind */}
+        <span
+          className="pointer-events-none absolute -z-10 size-20 rounded-full bg-emerald-400/20 blur-2xl dark:bg-emerald-500/20"
+          aria-hidden
+        />
+        <div
+          className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500/15 to-teal-500/20 ring-1 ring-emerald-500/20 dark:from-emerald-500/20 dark:to-teal-500/25"
+        >
+          <Icon className="size-7 text-emerald-600 dark:text-emerald-400" />
+        </div>
       </div>
       <div className="space-y-1">
         <p className="text-sm font-medium">{title}</p>

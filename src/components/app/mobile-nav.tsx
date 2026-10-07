@@ -2,7 +2,8 @@
 
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { useAppStore } from '@/lib/store'
+import { useAppStore, type AppView } from '@/lib/store'
+import { NAV_TONES, TONE_CLASSES, type NavTone } from '@/components/app/nav-tones'
 import {
   CalendarClock,
   ClipboardList,
@@ -17,21 +18,36 @@ type BottomItemProps = {
   icon: LucideIcon
   label: string
   active: boolean
+  tone: NavTone
   onClick: () => void
 }
 
-function BottomItem({ icon: Icon, label, active, onClick }: BottomItemProps) {
+function BottomItem({ icon: Icon, label, active, tone: toneKey, onClick }: BottomItemProps) {
+  const tone = TONE_CLASSES[toneKey]
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        'flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 rounded-md py-1.5 text-[10px] font-medium transition-colors',
-        active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+        'group flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1.5 text-[10px] font-medium transition-colors',
+        active ? tone.text : 'text-muted-foreground hover:text-foreground'
       )}
       aria-current={active ? 'page' : undefined}
     >
-      <Icon className="size-5" />
+      <span
+        className={cn(
+          'flex size-8 items-center justify-center rounded-lg transition-colors',
+          active ? tone.gradient : cn('bg-transparent', tone.tintHover)
+        )}
+        aria-hidden
+      >
+        <Icon
+          className={cn(
+            'size-[18px] transition-colors',
+            active ? tone.iconActive : cn('text-muted-foreground', tone.iconHover)
+          )}
+        />
+      </span>
       <span>{label}</span>
     </button>
   )
@@ -46,12 +62,13 @@ function FabItem({ onClick }: { onClick: () => void }) {
         aria-label="Buat Laporan"
         onClick={onClick}
         className={cn(
-          'bg-primary text-primary-foreground -mt-6 flex size-14 items-center justify-center rounded-full shadow-lg',
-          'bg-gradient-to-br from-emerald-500 to-emerald-600 dark:from-emerald-500 dark:to-emerald-700',
+          '-mt-6 flex size-14 items-center justify-center rounded-full text-white',
+          'bg-gradient-to-br from-emerald-500 to-teal-600',
+          'shadow-lg shadow-emerald-500/40',
           'ring-4 ring-background transition-transform active:scale-95 hover:scale-105'
         )}
       >
-        <Plus className="size-6" />
+        <Plus className="size-6" strokeWidth={2.4} />
       </button>
     </div>
   )
@@ -91,6 +108,7 @@ export function MobileNavWithDrawer() {
           icon={LayoutDashboard}
           label="Beranda"
           active={view === 'dashboard'}
+          tone={NAV_TONES['dashboard' as AppView]}
           onClick={() => setView('dashboard')}
         />
 
@@ -99,6 +117,7 @@ export function MobileNavWithDrawer() {
           icon={isGuest ? History : ClipboardList}
           label={isGuest ? 'Riwayat' : 'Laporan'}
           active={reportsActive}
+          tone={NAV_TONES['reports' as AppView]}
           onClick={() => setView('reports')}
         />
 
@@ -108,6 +127,7 @@ export function MobileNavWithDrawer() {
             icon={StickyNote}
             label="Catatan"
             active={view === 'notes'}
+            tone={NAV_TONES['notes' as AppView]}
             onClick={() => setView('notes')}
           />
         ) : (
@@ -120,6 +140,7 @@ export function MobileNavWithDrawer() {
               icon={CalendarClock}
               label="Jadwal"
               active={view === 'schedules'}
+              tone={NAV_TONES['schedules' as AppView]}
               onClick={() => setView('schedules')}
             />
 
@@ -128,6 +149,7 @@ export function MobileNavWithDrawer() {
               icon={StickyNote}
               label="Catatan"
               active={view === 'notes'}
+              tone={NAV_TONES['notes' as AppView]}
               onClick={() => setView('notes')}
             />
           </>

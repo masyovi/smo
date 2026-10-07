@@ -26,12 +26,19 @@ export function Brand({
     <div className={cn('flex items-center gap-2.5', className)}>
       <div
         className={cn(
-          'flex items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20',
+          'relative flex items-center justify-center rounded-xl',
+          'bg-gradient-to-br from-emerald-500 to-teal-600 text-white',
+          'shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/30',
           s.box
         )}
         aria-hidden
       >
-        <ShieldCheck className={s.icon} strokeWidth={2.2} />
+        {/* Subtle inner highlight for a glassy feel */}
+        <span
+          className="pointer-events-none absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_55%)]"
+          aria-hidden
+        />
+        <ShieldCheck className={cn('relative', s.icon)} strokeWidth={2.2} />
       </div>
       {variant !== 'compact' && (
         <div className="flex flex-col leading-none">
@@ -57,12 +64,19 @@ export function BrandMark({
   return (
     <div
       className={cn(
-        'flex items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm',
+        'relative flex items-center justify-center rounded-xl text-white',
+        'bg-gradient-to-br from-emerald-500 to-teal-600',
+        'shadow-lg shadow-emerald-500/30 ring-1 ring-emerald-400/30',
         className
       )}
       aria-hidden
     >
-      <Icon className="size-1/2" strokeWidth={2} />
+      {/* Subtle inner highlight */}
+      <span
+        className="pointer-events-none absolute inset-0 rounded-xl bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.35),transparent_55%)]"
+        aria-hidden
+      />
+      <Icon className="relative size-1/2" strokeWidth={2} />
     </div>
   )
 }

@@ -236,7 +236,11 @@ export function ReportDetailView() {
           </div>
 
           <div className="grid grid-cols-2 gap-3 border-t pt-4 text-sm sm:grid-cols-4">
-            <InfoTile icon={MapPin} label="Lokasi">
+            <InfoTile
+              icon={MapPin}
+              label="Lokasi"
+              iconTone="teal"
+            >
               {data.location ? (
                 <>
                   <div className="font-medium">{data.location.name}</div>
@@ -249,7 +253,11 @@ export function ReportDetailView() {
                 '—'
               )}
             </InfoTile>
-            <InfoTile icon={Tag} label="Kategori">
+            <InfoTile
+              icon={Tag}
+              label="Kategori"
+              iconTone="rose"
+            >
               <div className="flex items-center gap-1.5 font-medium">
                 <CategoryIcon
                   name={data.category?.icon}
@@ -258,13 +266,21 @@ export function ReportDetailView() {
                 {data.category?.name ?? '—'}
               </div>
             </InfoTile>
-            <InfoTile icon={User} label="Pelapor">
+            <InfoTile
+              icon={User}
+              label="Pelapor"
+              iconTone="cyan"
+            >
               <div className="font-medium">{data.reporter?.name ?? '—'}</div>
               <div className="text-muted-foreground text-xs">
                 {data.reporter?.department ?? '—'}
               </div>
             </InfoTile>
-            <InfoTile icon={UserCog} label="Ditugaskan">
+            <InfoTile
+              icon={UserCog}
+              label="Ditugaskan"
+              iconTone="emerald"
+            >
               <div className="font-medium">
                 {data.assignee?.name ?? 'Belum ditugaskan'}
               </div>
@@ -423,22 +439,54 @@ export function ReportDetailView() {
   )
 }
 
+type InfoTileTone = 'teal' | 'rose' | 'cyan' | 'emerald'
+
+const INFO_TILE_TONES: Record<InfoTileTone, { bg: string; fg: string }> = {
+  teal: {
+    bg: 'bg-gradient-to-br from-teal-500/15 to-cyan-600/20 text-teal-600 dark:text-teal-300 dark:from-teal-500/20 dark:to-cyan-600/25',
+    fg: 'text-teal-600 dark:text-teal-300',
+  },
+  rose: {
+    bg: 'bg-gradient-to-br from-rose-500/15 to-pink-600/20 text-rose-600 dark:text-rose-300 dark:from-rose-500/20 dark:to-pink-600/25',
+    fg: 'text-rose-600 dark:text-rose-300',
+  },
+  cyan: {
+    bg: 'bg-gradient-to-br from-cyan-500/15 to-sky-600/20 text-cyan-600 dark:text-cyan-300 dark:from-cyan-500/20 dark:to-sky-600/25',
+    fg: 'text-cyan-600 dark:text-cyan-300',
+  },
+  emerald: {
+    bg: 'bg-gradient-to-br from-emerald-500/15 to-teal-600/20 text-emerald-600 dark:text-emerald-300 dark:from-emerald-500/20 dark:to-teal-600/25',
+    fg: 'text-emerald-600 dark:text-emerald-300',
+  },
+}
+
 function InfoTile({
   icon: Icon,
   label,
+  iconTone = 'teal',
   children,
 }: {
   icon: typeof MapPin
   label: string
+  iconTone?: InfoTileTone
   children: React.ReactNode
 }) {
+  const tone = INFO_TILE_TONES[iconTone]
   return (
-    <div className="space-y-0.5">
-      <div className="text-muted-foreground inline-flex items-center gap-1 text-[11px] uppercase tracking-wide">
-        <Icon className="size-3" />
+    <div className="space-y-1">
+      <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">
+        <span
+          className={cn(
+            'flex size-6 items-center justify-center rounded-lg',
+            tone.bg
+          )}
+          aria-hidden
+        >
+          <Icon className={cn('size-3.5', tone.fg)} />
+        </span>
         {label}
       </div>
-      <div className="text-sm">{children}</div>
+      <div className="text-sm pl-8">{children}</div>
     </div>
   )
 }

@@ -155,11 +155,16 @@ export function Topbar() {
           size="icon"
           aria-label="Ganti tema"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+          className="size-9 rounded-lg transition-transform hover:scale-105"
         >
           {mounted && theme === 'dark' ? (
-            <Sun className="size-4" />
+            <span className="flex size-full items-center justify-center rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+              <Sun className="size-4" />
+            </span>
           ) : (
-            <Moon className="size-4" />
+            <span className="flex size-full items-center justify-center rounded-lg bg-amber-500/10 text-amber-600">
+              <Moon className="size-4" />
+            </span>
           )}
           <span className="sr-only">Ganti tema</span>
         </Button>
@@ -171,8 +176,8 @@ export function Topbar() {
               className="flex items-center gap-2 rounded-full p-1 transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               aria-label="Menu pengguna"
             >
-              <Avatar className="size-8 ring-1 ring-border">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+              <Avatar className="size-8 ring-2 ring-emerald-400/40">
+                <AvatarFallback className="bg-gradient-to-br from-emerald-500/15 to-teal-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold ring-1 ring-emerald-400/30">
                   {initials(user.name)}
                 </AvatarFallback>
               </Avatar>
@@ -189,8 +194,8 @@ export function Topbar() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel className="flex items-center gap-2">
-              <Avatar className="size-9">
-                <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+              <Avatar className="size-9 ring-2 ring-emerald-400/40">
+                <AvatarFallback className="bg-gradient-to-br from-emerald-500/15 to-teal-500/20 text-emerald-700 dark:text-emerald-300 text-xs font-semibold ring-1 ring-emerald-400/30">
                   {initials(user.name)}
                 </AvatarFallback>
               </Avatar>
@@ -351,16 +356,29 @@ function NotificationBell({
           variant="ghost"
           size="icon"
           aria-label="Pengingat maintenance"
-          className="relative"
+          className={cn(
+            'relative size-9 rounded-lg transition-transform hover:scale-105',
+            totalDue > 0 && 'p-0'
+          )}
         >
           {totalDue > 0 ? (
-            <BellRing className="size-4" />
+            <span
+              className={cn(
+                'flex size-full items-center justify-center rounded-lg text-white',
+                'bg-gradient-to-br from-red-500 to-rose-600 shadow-sm shadow-red-500/40',
+                'animate-pulse'
+              )}
+            >
+              <BellRing className="size-4" />
+            </span>
           ) : (
-            <Bell className="size-4" />
+            <span className="flex size-full items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
+              <Bell className="size-4" />
+            </span>
           )}
           {totalDue > 0 && (
             <span
-              className="absolute -top-0.5 -right-0.5 flex min-w-4 h-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white ring-2 ring-background"
+              className="absolute -top-0.5 -right-0.5 flex min-w-4 h-4 items-center justify-center rounded-full bg-gradient-to-br from-red-400 to-rose-600 px-1 text-[10px] font-bold text-white ring-2 ring-background shadow-sm shadow-red-500/40"
               aria-label={`${totalDue} jadwal jatuh tempo`}
             >
               {totalDue > 9 ? '9+' : totalDue}
@@ -407,7 +425,7 @@ function NotificationBell({
           </div>
         ) : !hasNotifications ? (
           <div className="flex flex-col items-center gap-2 px-3 py-6 text-center">
-            <div className="flex size-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-300">
+            <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm shadow-emerald-500/30">
               <CheckCircle2 className="size-5" />
             </div>
             <p className="text-sm font-medium">Tidak ada pengingat</p>

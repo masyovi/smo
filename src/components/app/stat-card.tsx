@@ -21,42 +21,48 @@ const toneMap: Record<
   emerald: {
     bar: 'bg-emerald-500',
     glow: 'bg-emerald-400/25',
-    iconBg: 'bg-emerald-500/10 dark:bg-emerald-500/15',
+    iconBg:
+      'bg-gradient-to-br from-emerald-500/15 to-teal-500/20 dark:from-emerald-500/20 dark:to-teal-500/25',
     iconFg: 'text-emerald-600 dark:text-emerald-400',
     value: 'text-emerald-700 dark:text-emerald-300',
   },
   amber: {
     bar: 'bg-amber-500',
     glow: 'bg-amber-400/25',
-    iconBg: 'bg-amber-500/10 dark:bg-amber-500/15',
+    iconBg:
+      'bg-gradient-to-br from-amber-500/15 to-orange-500/20 dark:from-amber-500/20 dark:to-orange-500/25',
     iconFg: 'text-amber-600 dark:text-amber-400',
     value: 'text-amber-700 dark:text-amber-300',
   },
   blue: {
     bar: 'bg-blue-500',
     glow: 'bg-blue-400/25',
-    iconBg: 'bg-blue-500/10 dark:bg-blue-500/15',
+    iconBg:
+      'bg-gradient-to-br from-sky-500/15 to-blue-500/20 dark:from-sky-500/20 dark:to-blue-500/25',
     iconFg: 'text-blue-600 dark:text-blue-400',
     value: 'text-blue-700 dark:text-blue-300',
   },
   red: {
     bar: 'bg-red-500',
     glow: 'bg-red-400/25',
-    iconBg: 'bg-red-500/10 dark:bg-red-500/15',
+    iconBg:
+      'bg-gradient-to-br from-red-500/15 to-rose-500/20 dark:from-red-500/20 dark:to-rose-500/25',
     iconFg: 'text-red-600 dark:text-red-400',
     value: 'text-red-700 dark:text-red-300',
   },
   slate: {
     bar: 'bg-slate-400',
     glow: 'bg-slate-300/25',
-    iconBg: 'bg-slate-500/10 dark:bg-slate-400/15',
+    iconBg:
+      'bg-gradient-to-br from-slate-500/15 to-slate-600/20 dark:from-slate-400/15 dark:to-slate-500/20',
     iconFg: 'text-slate-600 dark:text-slate-300',
     value: 'text-slate-700 dark:text-slate-200',
   },
   purple: {
     bar: 'bg-purple-500',
     glow: 'bg-purple-400/25',
-    iconBg: 'bg-purple-500/10 dark:bg-purple-500/15',
+    iconBg:
+      'bg-gradient-to-br from-violet-500/15 to-purple-500/20 dark:from-violet-500/20 dark:to-purple-500/25',
     iconFg: 'text-purple-600 dark:text-purple-400',
     value: 'text-purple-700 dark:text-purple-300',
   },

@@ -150,7 +150,7 @@ export function DashboardView() {
       {isGuest && (
         <Card className="border-teal-200/70 bg-teal-50/50 dark:border-teal-900/60 dark:bg-teal-950/20">
           <CardContent className="flex items-center gap-3 px-4 py-3 sm:px-6">
-            <div className="flex size-9 items-center justify-center rounded-full bg-teal-100 text-teal-700 dark:bg-teal-950/60 dark:text-teal-300">
+            <div className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-teal-500 to-cyan-600 text-white shadow-sm shadow-teal-500/30">
               <Eye className="size-4" />
             </div>
             <div className="min-w-0 flex-1">
@@ -217,10 +217,10 @@ export function DashboardView() {
               <div className="flex items-center gap-3">
                 <div
                   className={cn(
-                    'flex size-10 items-center justify-center rounded-full',
+                    'flex size-10 items-center justify-center rounded-full text-white shadow-sm',
                     maintenance.totalDue > 0
-                      ? 'bg-red-100 text-red-600 dark:bg-red-950/70 dark:text-red-300'
-                      : 'bg-amber-100 text-amber-600 dark:bg-amber-950/70 dark:text-amber-300'
+                      ? 'bg-gradient-to-br from-red-500 to-rose-600 shadow-red-500/30'
+                      : 'bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/30'
                   )}
                 >
                   <CalendarClock className="size-5" />
@@ -252,7 +252,7 @@ export function DashboardView() {
         <Card className="border-amber-300/70 bg-amber-50/60 dark:border-amber-900/60 dark:bg-amber-950/30">
           <CardContent className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/70 dark:text-amber-300">
+              <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm shadow-amber-500/30">
                 <UserPlus className="size-5" />
               </div>
               <div>
