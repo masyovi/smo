@@ -671,3 +671,18 @@ Work Log:
 
 Stage Summary:
 - The image attachment / "Lampiran Gambar" field is fully removed from the Create Report form. The form is now simpler (5 fields: Judul, Deskripsi, Lokasi, Kategori, Prioritas) with no file upload UI.
+
+---
+Task ID: 17
+Agent: main
+Task: Remove the "Batal dan kembali" link from the Create Report form
+
+Work Log:
+- Removed the `<button>Batal dan kembali</button>` element (with the `ArrowLeft` icon) that sat above the form card in `src/components/app/views/report-form-view.tsx`. It called `setView('reports')` to navigate back to the reports list.
+- Removed the now-unused `ArrowLeft` Lucide import. Kept `setView` (still used by the "Batal" button at the bottom of the form).
+- The form now opens directly with the `<Card>` (title "Buat Laporan Kerusakan" + the field list). The bottom "Batal" / "Kirim Laporan" action buttons are untouched.
+- Verified via Agent Browser (logged in as teknisi, opened "Buat Laporan" form): `document.body.innerText.includes('Batal dan kembali')` = false. ✅
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean (HTTP 200).
+
+Stage Summary:
+- The "Batal dan kembali" back-link at the top of the Create Report form is gone. The form starts directly with the card header + fields. The cancel/submit buttons at the bottom remain.

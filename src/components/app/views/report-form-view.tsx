@@ -8,7 +8,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
-  ArrowLeft,
   Loader2,
   MapPin,
   Plus,
@@ -114,15 +113,6 @@ export function ReportFormView() {
       transition={{ duration: 0.25, ease: 'easeOut' }}
       className="mx-auto max-w-3xl space-y-4"
     >
-      <button
-        type="button"
-        onClick={() => setView('reports')}
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Batal dan kembali
-      </button>
-
       <Card>
         <CardHeader>
           <CardTitle className="text-xl">Buat Laporan Kerusakan</CardTitle>
