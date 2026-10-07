@@ -13,6 +13,8 @@ import { LocationsView } from '@/components/app/views/locations-view'
 import { CategoriesView } from '@/components/app/views/categories-view'
 import { UsersView } from '@/components/app/views/users-view'
 import { ProfileView } from '@/components/app/views/profile-view'
+import { NotesView } from '@/components/app/views/notes-view'
+import { SettingsView } from '@/components/app/views/settings-view'
 import { cn } from '@/lib/utils'
 
 export function AppShell() {
@@ -52,6 +54,10 @@ function ViewRouter({ view }: { view: string }) {
       return <CategoriesView />
     case 'users':
       return <UsersView />
+    case 'notes':
+      return <NotesView />
+    case 'settings':
+      return <SettingsView />
     case 'profile':
       return <ProfileView />
     default:

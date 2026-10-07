@@ -11,9 +11,11 @@ export type AppView =
   | 'locations'
   | 'categories'
   | 'users'
+  | 'notes'
+  | 'settings'
   | 'profile'
 
-export type NavItem = 'dashboard' | 'reports' | 'locations' | 'categories' | 'users' | 'profile'
+export type NavItem = 'dashboard' | 'reports' | 'locations' | 'categories' | 'users' | 'notes' | 'settings' | 'profile'
 
 type SessionUser = {
   id: string

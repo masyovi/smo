@@ -25,6 +25,7 @@ model User {
   reports         Report[]       @relation("ReporterReports")
   assignedReports Report[]       @relation("AssigneeReports")
   history         ReportHistory[]
+  notes           Note[]
 
   @@index([role])
 }
@@ -95,4 +96,22 @@ model ReportHistory {
   user   User   @relation(fields: [userId], references: [id])
 
   @@index([reportId])
+}
+
+// Catatan (Notes) — a shared bulletin/memo board.
+// Visible to everyone (incl. read-only guests). Only Teknisi can create/edit/delete.
+model Note {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  color     String   @default("default") // default | yellow | green | blue | pink
+  pinned    Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([authorId])
+  @@index([pinned])
 }

@@ -9,6 +9,8 @@ import {
   Eye,
   LogOut,
   Moon,
+  Settings,
+  StickyNote,
   Sun,
   User as UserIcon,
 } from 'lucide-react'
@@ -36,6 +38,8 @@ const TITLES: Record<string, string> = {
   locations: 'Lokasi',
   categories: 'Kategori',
   users: 'Pengguna',
+  notes: 'Catatan',
+  settings: 'Pengaturan',
   profile: 'Profil Saya',
 }
 
@@ -149,6 +153,18 @@ export function Topbar() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            {!isGuest && (
+              <DropdownMenuItem onClick={() => setView('notes')}>
+                <StickyNote className="size-4" />
+                Catatan
+              </DropdownMenuItem>
+            )}
+            {!isGuest && (
+              <DropdownMenuItem onClick={() => setView('settings')}>
+                <Settings className="size-4" />
+                Pengaturan
+              </DropdownMenuItem>
+            )}
             {!isGuest && (
               <DropdownMenuItem onClick={() => setView('profile')}>
                 <UserIcon className="size-4" />
