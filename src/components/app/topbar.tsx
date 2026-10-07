@@ -39,6 +39,7 @@ import {
 import { useAppStore } from '@/lib/store'
 import { apiFetch } from '@/lib/api'
 import { RoleBadge } from '@/components/app/role-badge'
+import { Brand } from '@/components/app/brand'
 import { formatDate } from '@/lib/types'
 import { startOfDay, daysBetween } from '@/lib/schedule-utils'
 import { cn } from '@/lib/utils'
@@ -129,7 +130,13 @@ export function Topbar() {
   return (
     <header className="bg-background/85 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 flex h-16 items-center gap-3 border-b px-4 backdrop-blur-md sm:px-6">
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <h1 className="truncate text-lg font-semibold tracking-tight sm:text-xl">
+        {/* Mobile: show the SMO brand (logo + name) instead of the page title,
+            since the bottom nav is icon-only now. */}
+        <div className="sm:hidden">
+          <Brand size="sm" />
+        </div>
+        {/* Desktop: keep the page title for context. */}
+        <h1 className="hidden truncate text-lg font-semibold tracking-tight sm:block sm:text-xl">
           {title}
         </h1>
       </div>

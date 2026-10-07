@@ -620,3 +620,33 @@ Work Log:
 Stage Summary:
 - Dark mode is fully removed: the theme toggle button is gone, the app is permanently in light mode (forced via ThemeProvider), and the `<html>` element always has `class="light"`.
 - Users can no longer toggle dark mode; the app stays light in all conditions.
+
+---
+Task ID: 15
+Agent: main
+Task: Replace bottom-nav text labels with icons; show app name in the mobile top bar
+
+Work Log:
+- Rewrote `BottomItem` in `src/components/app/mobile-nav.tsx`:
+  - Removed the `<span>{label}</span>` text label (the nav is now icon-only).
+  - Added `aria-label={label}` + `title={label}` on the button for accessibility (screen readers + long-press tooltip still announce the item name).
+  - Switched the layout from `flex-col` (icon-over-label) to centered icon-only.
+  - Bumped the icon container `size-8` → `size-9` (rounded-xl) and the icon `size-[18px]` → `size-[20px]` so the touch target stays generous without the label.
+  - Inactive icons now show their per-item tone color (`tone.iconIdle`) at rest — matches the sidebar (Task 13) and makes the bottom nav colorful, not gray.
+  - Added `group-hover:scale-105` micro-interaction on inactive icons; active keeps the gradient pill.
+- Updated `src/components/app/topbar.tsx`:
+  - Imported `Brand` from `@/components/app/brand`.
+  - Made the topbar left section responsive:
+    - **Mobile (`sm:hidden`)**: shows `<Brand size="sm" />` (gradient emerald shield + "SMO" + "Save My Office") instead of the page title — so the app is identified at the top now that the bottom nav is icon-only.
+    - **Desktop (`hidden sm:block`)**: keeps the page-title `<h1>{title}</h1>` for context (the sidebar already shows the brand on desktop).
+- Verified via Agent Browser (390×844 mobile viewport, guest login):
+  - Top bar `innerText` = "SMO Save My Office …" — brand present. VLM: "SMO logo (green circle with white checkmark) + 'Save My Office' text displayed right next to it". ✅
+  - Bottom nav `nav[aria-label="Navigasi bawah"]` innerText = empty (no visible text); 0 text-label spans; buttons have aria-labels "Beranda | Riwayat | Catatan". VLM: "icon-only (no text labels)". ✅
+  - Desktop topbar still shows the page title h1 (responsive).
+- `bun run lint` passes (0 errors, 1 pre-existing warning). dev.log clean (HTTP 200).
+
+Stage Summary:
+- Mobile bottom navigation is now icon-only (no "Beranda/Laporan/Jadwal/Catatan" text labels) — cleaner, more space, modern look. Each icon keeps its per-tone color and the active item shows a gradient pill.
+- The mobile top bar now shows the SMO brand (logo + "SMO" + "Save My Office") so the app is identified at the top.
+- Desktop is unchanged (sidebar with brand + labeled nav, topbar with page title).
+- Accessibility preserved via aria-labels / title attributes on the icon-only buttons.

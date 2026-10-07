@@ -28,27 +28,30 @@ function BottomItem({ icon: Icon, label, active, tone: toneKey, onClick }: Botto
     <button
       type="button"
       onClick={onClick}
+      aria-label={label}
+      title={label}
       className={cn(
-        'group flex min-h-[44px] flex-1 flex-col items-center justify-center gap-1 rounded-lg py-1.5 text-[10px] font-medium transition-colors',
+        'group flex min-h-[48px] flex-1 items-center justify-center rounded-lg transition-colors',
         active ? tone.text : 'text-muted-foreground hover:text-foreground'
       )}
       aria-current={active ? 'page' : undefined}
     >
       <span
         className={cn(
-          'flex size-8 items-center justify-center rounded-lg transition-colors',
-          active ? tone.gradient : cn('bg-transparent', tone.tintHover)
+          'flex size-9 items-center justify-center rounded-xl transition-all',
+          active
+            ? tone.gradient
+            : cn('bg-transparent group-hover:scale-105', tone.tintHover)
         )}
         aria-hidden
       >
         <Icon
           className={cn(
-            'size-[18px] transition-colors',
-            active ? tone.iconActive : cn('text-muted-foreground', tone.iconHover)
+            'size-[20px] transition-colors',
+            active ? tone.iconActive : tone.iconIdle
           )}
         />
       </span>
-      <span>{label}</span>
     </button>
   )
 }
