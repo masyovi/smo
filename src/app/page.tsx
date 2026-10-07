@@ -5,7 +5,7 @@ import { useAppStore } from '@/lib/store'
 import { apiFetch } from '@/lib/api'
 import { LoginScreen } from '@/components/app/login-screen'
 import { AppShell } from '@/components/app/app-shell'
-import { Loader2, ShieldCheck } from 'lucide-react'
+import { TechnicianLoader } from '@/components/app/technician-loader'
 
 export default function Home() {
   const user = useAppStore((s) => s.user)
@@ -35,17 +35,7 @@ export default function Home() {
   }, [])
 
   if (authLoading) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-3 p-6">
-        <div className="flex size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20">
-          <ShieldCheck className="size-6" />
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Memuat SMO…
-        </div>
-      </div>
-    )
+    return <TechnicianLoader />
   }
 
   if (!user) {

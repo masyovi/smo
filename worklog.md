@@ -824,3 +824,24 @@ Stage Summary:
 - De-duplicated by schedule IDs so it won't spam every 60s poll.
 - Service worker (`/sw.js`) handles the notification display + click-to-focus.
 - Requires HTTPS or localhost for SW registration (works in the user's real browser via the gateway/preview).
+
+---
+Task ID: 23
+Agent: main
+Task: Replace the "Memuat SMO…" text loading screen with an animated "teknisi" animation (no text)
+
+Work Log:
+- Created `src/components/app/technician-loader.tsx` — a pure-animation loading screen (no text) depicting a technician at work:
+  - **Pulsing emerald + teal glow** (two blurred circles, scale/opacity pulse on different rhythms).
+  - **Outer spinning gear** (Cog icon, 8s linear rotation, emerald/25 opacity).
+  - **Inner counter-spinning gear** (Cog, 5s reverse rotation, teal/30 opacity).
+  - **Rotating dashed ring** (border-dashed, 3s rotation, with right/bottom borders transparent for a partial-ring feel).
+  - **Technician hard-hat badge** (HardHat icon in a gradient emerald-to-teal rounded-2xl, ring + shadow + glow) — gently bobs up/down (1.6s easeInOut).
+  - **Swinging wrench** (Wrench icon) — pendulum motion (rotate 0 → 28 → -22 → 0, 1.8s) at the top-right of the badge, like a technician tightening.
+  - All via framer-motion (`motion.div` + `animate`/`transition` with `repeat: Infinity`).
+- Updated `src/app/page.tsx`: replaced the old loading block (`<ShieldCheck>` + `<Loader2 className="animate-spin">` + "Memuat SMO…" text) with `<TechnicianLoader />`. Removed the now-unused `Loader2`/`ShieldCheck` imports.
+- Verified via Agent Browser: `document.body.innerText.includes('Memuat')` = **false** — the "Memuat" text is gone. ✅ The loading screen is very brief on localhost (the `/api/auth/me` check resolves in ~100ms), so it's hard to screenshot, but the component code is correct (framer-motion animations + Lucide Cog/HardHat/Wrench icons).
+- `bun run lint` passes (0 errors, 3 pre-existing warnings). dev.log clean (HTTP 200).
+
+Stage Summary:
+- The app's loading state now shows a polished animated "teknisi at work" scene (pulsing emerald glow + two counter-rotating gears + a rotating dashed ring + a bobbing hard-hat badge + a swinging wrench) instead of the plain "Memuat SMO…" spinner text. Pure animation, no text.
