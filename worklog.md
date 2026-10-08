@@ -885,3 +885,35 @@ Work Log:
 
 Stage Summary:
 - The "Tandai Selesai" button is now only clickable for schedules that have actually reached their due date (today or overdue). Future/upcoming schedules show the button disabled with a helpful tooltip telling the user when it can be completed. No more completing maintenance "early".
+
+---
+Task ID: 26
+Agent: main
+Task: Wrap the app with Capacitor so it can be built as an Android APK
+
+Work Log:
+- Installed Capacitor packages: `@capacitor/core@8.5.3`, `@capacitor/cli@8.5.3`, `@capacitor/android@8.5.3`, `@capacitor/assets` (dev).
+- Created `capacitor.config.ts` with:
+  - `appId: 'com.smo.saveoffice'`, `appName: 'SMO'`, `webDir: 'public'`.
+  - `server.url` = `process.env.SMO_APP_URL || 'https://smo-app.example.com'` — the Android WebView loads the DEPLOYED full-stack app URL (since SMO has API routes + Turso, the APK is a thin WebView wrapper, not a self-contained static bundle).
+  - `server.androidScheme: 'https'` — secure context so Service Worker + push work.
+  - `android.backgroundColor: '#0f766e'` (emerald) — no white flash on load.
+  - `allowMixedContent: true`, `webContentsDebuggingEnabled: true`.
+- Ran `npx cap init` + `npx cap add android` → created the native `android/` project (Gradle wrapper, AndroidManifest, MainActivity, 3.1 MB).
+- Generated Android launcher icons + splash screens from the SMO logo: copied `public/smo-icon.png` → `assets/icon.png`, ran `capacitor-assets generate --android` → 74 generated files (mipmap-* densities + splash + splash-dark).
+- Added `public/index.html` — a minimal fallback page (gradient emerald bg + SMO logo + "Menghubungkan ke server…" + spinner) shown if the WebView can't reach the deployed URL (offline). Also satisfies `cap doctor` (which wanted an index.html in the webDir).
+- Ran `npx cap sync android` → copied web assets + config into the android project. `cap doctor` now reports "[success] Android looking great! 👌".
+- Added npm scripts to `package.json`: `cap:sync` (cap sync android), `cap:open` (cap open android), `cap:icons` (capacitor-assets generate --android).
+- Wrote `BUILD-ANDROID.md` — full build instructions: deploy the Next.js app to a public HTTPS URL → set `SMO_APP_URL` (or edit config) → `bun run cap:sync` → `bun run cap:open` → build APK in Android Studio. Covers icon regeneration, app id, auth (Bearer token persists in WebView localStorage), push notifications (SW works on HTTPS URL), and the offline limitation.
+- Restored `.env` (it got reset during `bun add` — lost `TURSO_DATABASE_URL`) + re-applied `chmod 444` to prevent future resets. Restarted the dev server (HTTP 200). Lint passes (0 errors).
+
+Stage Summary:
+- The SMO app is now wrapped with Capacitor and ready to build as an Android APK:
+  - `capacitor.config.ts` — config (appId `com.smo.saveoffice`, app name "SMO", loads the deployed URL in a WebView).
+  - `android/` — full native Android project (Gradle + Kotlin) with SMO launcher icons + splash screens generated from the SMO logo.
+  - `public/index.html` — offline fallback ("Menghubungkan ke server…").
+  - `assets/icon.png` — source icon for regeneration.
+  - `BUILD-ANDROID.md` — step-by-step build instructions.
+  - npm scripts: `cap:sync`, `cap:open`, `cap:icons`.
+- Build flow: deploy app → set URL → `cap:sync` → open in Android Studio → Build APK.
+- The web app is unaffected — dev server runs normally (HTTP 200), lint clean.
