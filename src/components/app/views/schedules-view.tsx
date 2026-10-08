@@ -434,6 +434,11 @@ function ScheduleCard({
 
   const dueBadge = dueLabel(schedule.nextDueDate)
   const showDueBadge = tone !== 'muted'
+  // A schedule can only be marked complete once it has actually reached its
+  // due date (today or overdue). Future/upcoming schedules can't be completed
+  // early — the button stays disabled until the due date arrives.
+  const isDue =
+    daysBetween(startOfDay(todayDate()), startOfDay(new Date(schedule.nextDueDate))) <= 0
 
   return (
     <Card
@@ -503,7 +508,12 @@ function ScheduleCard({
                 size="sm"
                 variant="default"
                 className="bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-600 h-7 px-2.5 text-[11px]"
-                disabled={completeMutation.isPending}
+                disabled={completeMutation.isPending || !isDue}
+                title={
+                  isDue
+                    ? 'Tandai siklus ini selesai dan maju ke jadwal berikutnya'
+                    : `Belum jatuh tempo — bisa diselesaikan mulai ${formatDate(schedule.nextDueDate)}`
+                }
                 onClick={() => completeMutation.mutate()}
               >
                 <CheckCircle2 className="size-3.5" />

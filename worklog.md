@@ -860,3 +860,28 @@ Work Log:
 
 Stage Summary:
 - The "Demo akun" panel that revealed the teknisi credentials is gone. Only people who know the account email/password can log in via the form. The "Masuk sebagai Tamu" read-only guest entry remains.
+
+---
+Task ID: 25
+Agent: main
+Task: Fix bug — disable "Tandai Selesai" button for schedules that haven't reached their due date
+
+Work Log:
+- Root cause: in `src/components/app/views/schedules-view.tsx`, the "Tandai Selesai" button's `disabled` prop was only `completeMutation.isPending` — so the button was clickable for ALL schedules, including future/upcoming ones (e.g. a schedule due in 5 days could be "completed" early, which is wrong).
+- Fix: added an `isDue` flag in the `ScheduleCard` component:
+  ```ts
+  const isDue = daysBetween(startOfDay(todayDate()), startOfDay(new Date(schedule.nextDueDate))) <= 0
+  ```
+  (true only when the schedule's nextDueDate is today or in the past).
+- Updated the "Tandai Selesai" button: `disabled={completeMutation.isPending || !isDue}` + a dynamic `title` tooltip:
+  - when due: "Tandai siklus ini selesai dan maju ke jadwal berikutnya"
+  - when not due: "Belum jatuh tempo — bisa diselesaikan mulai <formatDate(nextDueDate)>"
+- Verified via Agent Browser (after re-seeding so the Maintenance Lift is due today, Oct 8):
+  - Maintenance Lift Utama (due today) → button ENABLED (disabled:false), title "Tandai siklus ini selesai…". ✅
+  - Service AC (due in 3 days) → button DISABLED, title "Belum jatuh tempo — bisa diselesaikan mulai 11 Okt 2026". ✅
+  - CCTV (due in 5 days), APAR (Nov), Smoke Detector (2027) → all DISABLED. ✅
+  - So: 1 enabled (due) + 4 disabled (future) — exactly the intended behavior.
+- `bun run lint` passes (0 errors, 3 pre-existing warnings). dev.log clean (HTTP 200).
+
+Stage Summary:
+- The "Tandai Selesai" button is now only clickable for schedules that have actually reached their due date (today or overdue). Future/upcoming schedules show the button disabled with a helpful tooltip telling the user when it can be completed. No more completing maintenance "early".
