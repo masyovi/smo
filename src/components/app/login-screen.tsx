@@ -5,17 +5,12 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ChevronDown, Eye, Loader2, LockKeyhole, Mail, UserRound } from 'lucide-react'
+import { Eye, Loader2, LockKeyhole, Mail, UserRound } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 import { apiFetch, ApiError } from '@/lib/api'
 import { useAppStore } from '@/lib/store'
@@ -28,24 +23,12 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>
 
-// Per the new SMO role policy, only Teknisi is promoted as a demo account on
-// the login screen. Guests have their own dedicated "Masuk sebagai Tamu" button.
-const DEMO_ACCOUNTS = [
-  {
-    role: 'Teknisi',
-    email: 'teknisi@smo.com',
-    password: 'teknisi123',
-    desc: 'Kelola semua laporan, lokasi, kategori, dan pengguna',
-  },
-]
-
 export function LoginScreen() {
   const setUser = useAppStore((s) => s.setUser)
   const setAuthToken = useAppStore((s) => s.setAuthToken)
   const setAuthLoading = useAppStore((s) => s.setAuthLoading)
   const [submitting, setSubmitting] = React.useState(false)
   const [guestLoading, setGuestLoading] = React.useState(false)
-  const [demoOpen, setDemoOpen] = React.useState(false)
   const [formErr, setFormErr] = React.useState<string | null>(null)
 
   const form = useForm<FormValues>({
@@ -92,12 +75,6 @@ export function LoginScreen() {
     } finally {
       setGuestLoading(false)
     }
-  }
-
-  const fillDemo = (email: string, password: string) => {
-    form.setValue('email', email)
-    form.setValue('password', password)
-    setFormErr(null)
   }
 
   return (
@@ -276,50 +253,6 @@ export function LoginScreen() {
                 <Eye className="size-3" />
                 Login sebagai tamu untuk melihat tanpa mengelola.
               </p>
-
-              <Collapsible open={demoOpen} onOpenChange={setDemoOpen} className="mt-5">
-                <CollapsibleTrigger asChild>
-                  <button
-                    type="button"
-                    className="flex w-full items-center justify-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <span>Demo akun</span>
-                    <ChevronDown
-                      className={cn(
-                        'size-3.5 transition-transform',
-                        demoOpen && 'rotate-180'
-                      )}
-                    />
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3 space-y-2 data-[state=closed]:hidden">
-                  {DEMO_ACCOUNTS.map((acc) => (
-                    <div
-                      key={acc.email}
-                      className="flex items-start justify-between gap-3 rounded-lg border border-border/70 bg-muted/40 p-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium">{acc.role}</div>
-                        <div className="text-muted-foreground text-xs truncate">
-                          {acc.email}
-                        </div>
-                        <div className="text-muted-foreground/80 text-[11px] mt-0.5">
-                          {acc.desc}
-                        </div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => fillDemo(acc.email, acc.password)}
-                        disabled={submitting || guestLoading}
-                        type="button"
-                      >
-                        Gunakan
-                      </Button>
-                    </div>
-                  ))}
-                </CollapsibleContent>
-              </Collapsible>
             </CardContent>
           </Card>
 

@@ -845,3 +845,18 @@ Work Log:
 
 Stage Summary:
 - The app's loading state now shows a polished animated "teknisi at work" scene (pulsing emerald glow + two counter-rotating gears + a rotating dashed ring + a bobbing hard-hat badge + a swinging wrench) instead of the plain "Memuat SMO…" spinner text. Pure animation, no text.
+
+---
+Task ID: 24
+Agent: main
+Task: Remove the "Demo akun" panel from the login screen (hide demo credentials)
+
+Work Log:
+- Removed the entire "Demo akun" collapsible panel from `src/components/app/login-screen.tsx` — the `<Collapsible>` block with the "Demo akun" trigger, the `DEMO_ACCOUNTS` list (which exposed `teknisi@smo.com / teknisi123`), the per-account cards with the "Gunakan" quick-fill button, and the `fillDemo()` helper.
+- Cleaned up the now-unused imports and state: removed `Collapsible`, `CollapsibleContent`, `CollapsibleTrigger` (from `@/components/ui/collapsible`), the `ChevronDown` Lucide icon, the `demoOpen`/`setDemoOpen` state, the `fillDemo` function, and the `DEMO_ACCOUNTS` constant + its comment.
+- The login screen now shows ONLY: the email/password form + "Masuk" button, the "atau" divider, the "Masuk sebagai Tamu" button (kept — it's a legitimate read-only entry point the user explicitly built), and the "Login sebagai tamu untuk melihat tanpa mengelola." hint.
+- Verified via Agent Browser: `document.body.innerText.includes('Demo akun')` = false, `includes('Gunakan')` = false, `includes('teknisi@smo.com')` = false — the demo credentials are no longer exposed. The "Masuk" form button + "Masuk sebagai Tamu" button are still present.
+- `bun run lint` passes (0 errors, 3 pre-existing warnings). dev.log clean (HTTP 200).
+
+Stage Summary:
+- The "Demo akun" panel that revealed the teknisi credentials is gone. Only people who know the account email/password can log in via the form. The "Masuk sebagai Tamu" read-only guest entry remains.
