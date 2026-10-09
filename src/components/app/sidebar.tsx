@@ -85,12 +85,12 @@ function NavButton({ item, role }: { item: NavDef; role: string }) {
   const active = view === item.view
 
   // Active state also lights up when we're inside a sub-view that belongs
-  // to the same nav item (e.g. report-detail belongs to the "Laporan" item).
+  // to the same nav item (e.g. report-detail / report-new belong to the
+  // "Laporan" item — NOT to "Beranda").
   const subActive =
     !active &&
-    ((item.view === 'reports' &&
-      (view === 'report-detail' || view === 'report-new')) ||
-      (item.view === 'dashboard' && view === 'report-new'))
+    item.view === 'reports' &&
+    (view === 'report-detail' || view === 'report-new')
 
   const toneKey = NAV_TONES[item.view] ?? 'slate'
   const tone = TONE_CLASSES[toneKey]

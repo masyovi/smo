@@ -1024,3 +1024,26 @@ Stage Summary:
 - The Add/Edit Location form now has only 3 fields: Nama Lokasi, Lantai, Deskripsi. The "Gedung" field is removed from the UI.
 - The API + DB keep the `building` column (NOT NULL) for backward compat with existing locations that have real building values (Gedung A, Gedung B). New locations get `building = '-'` by default, and the display hides the building for those (shows "Lt. <floor>" instead).
 - Legacy locations still show their building value in the card.
+
+---
+Task ID: 31
+Agent: main
+Task: Fix bug — "Beranda" sidebar item lighting up when clicking "Buat Laporan" (should only be "Laporan")
+
+Work Log:
+- Root cause: in `src/components/app/sidebar.tsx`, the `NavButton` `subActive` logic had a buggy condition:
+  ```ts
+  const subActive = !active && (
+    (item.view === 'reports' && (view === 'report-detail' || view === 'report-new')) ||
+    (item.view === 'dashboard' && view === 'report-new')  // ← BUG: lights up Beranda too
+  )
+  ```
+  The second condition `(item.view === 'dashboard' && view === 'report-new')` made the **Beranda** (dashboard) item active when the view was `'report-new'` (the Buat Laporan form). So both Beranda AND Laporan lit up green.
+- Confirmed via the user's screenshot + VLM: "both 'Beranda' (Home) and 'Laporan' (Reports) are highlighted with a light green background."
+- Fix: removed the `(item.view === 'dashboard' && view === 'report-new')` condition. Now `subActive` only fires for the `reports` item (Laporan) when on report-detail OR report-new — which is correct (the Buat Laporan form is a sub-view of Laporan, not Beranda).
+- Verified via Agent Browser (logged in as teknisi, clicked "Buat Laporan"): the active sidebar items = **"Laporan" (count: 1)** — only Laporan has the gradient. VLM: "ONLY 'Laporan' is active. 'Beranda' is NOT active — plain background." ✅
+- The mobile bottom nav (`mobile-nav.tsx`) was NOT affected — its `reportsActive = view === 'reports' || view === 'report-detail' || view === 'report-new'` already only lights up the Laporan cell (no dashboard involvement).
+- `bun run lint` passes (0 errors, 3 warnings). dev.log clean (HTTP 200).
+
+Stage Summary:
+- Clicking "Buat Laporan" now lights up ONLY the "Laporan" sidebar item (green gradient) — not "Beranda". The buggy condition that also activated the dashboard item on the report-new view is removed.
