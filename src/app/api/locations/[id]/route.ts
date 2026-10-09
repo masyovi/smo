@@ -32,13 +32,18 @@ export async function PATCH(
   const body = await req.json().catch(() => ({}))
   const data: Record<string, unknown> = {}
   if (body.name !== undefined) data.name = (body.name as string).toString().trim()
-  if (body.building !== undefined) data.building = (body.building as string).toString().trim()
+  // Building is optional now — default empty to '-' so the NOT NULL column
+  // stays satisfied. If not sent at all, it's left unchanged.
+  if (body.building !== undefined) {
+    const b = (body.building as string).toString().trim()
+    data.building = b || '-'
+  }
   if (body.floor !== undefined) data.floor = (body.floor as string | null)
   if (body.description !== undefined) data.description = (body.description as string | null)
 
-  if (data.name === '' || data.building === '') {
+  if (data.name === '') {
     return NextResponse.json(
-      { error: 'Nama dan gedung tidak boleh kosong' },
+      { error: 'Nama lokasi tidak boleh kosong' },
       { status: 400 }
     )
   }

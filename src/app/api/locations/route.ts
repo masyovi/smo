@@ -40,13 +40,15 @@ export async function POST(req: NextRequest) {
   }
   const body = await req.json().catch(() => ({}))
   const name = (body?.name ?? '').toString().trim()
-  const building = (body?.building ?? '').toString().trim()
+  // The form no longer collects "Gedung" — default to '-' so the NOT NULL
+  // column is satisfied. Old locations keep their real building values.
+  const building = (body?.building ?? '').toString().trim() || '-'
   const floor = body?.floor ? (body.floor as string).toString().trim() : null
   const description = body?.description ? (body.description as string).toString().trim() : null
 
-  if (!name || !building) {
+  if (!name) {
     return NextResponse.json(
-      { error: 'Nama dan gedung wajib diisi' },
+      { error: 'Nama lokasi wajib diisi' },
       { status: 400 }
     )
   }

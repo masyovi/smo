@@ -1001,3 +1001,26 @@ Stage Summary:
 - The PWA taskbar icon issue is fixed at the root: icons are now 3-channel opaque RGB PNGs (no alpha channel), which Windows/Chrome render as solid emerald squares with the SMO logo in the taskbar.
 - Added a favicon.ico fallback + bumped the SW cache.
 - IMPORTANT: the user must uninstall the old PWA + reload + reinstall for Chrome to re-fetch the manifest + the new no-alpha icons (the old install cached the alpha-channel icons).
+
+---
+Task ID: 30
+Agent: main
+Task: Remove the "Gedung" (Building) field from the Add/Edit Location form — keep only Nama Lokasi, Lantai, Deskripsi
+
+Work Log:
+- Updated `src/components/app/views/locations-view.tsx` (LocationForm):
+  - Removed the `building` state + the `setBuilding('')` reset.
+  - Removed the "Gedung" `<Label>` + `<Input>` field from the form JSX.
+  - Changed the submit body from `{ name, building, floor, description }` → `{ name, floor, description }` (building no longer sent).
+  - The "Lantai" field is no longer marked "(opsional)" since the user listed it as a needed field (though it's still nullable in the DB).
+- Updated `src/app/api/locations/route.ts` (POST): `building` now defaults to `'-'` when not provided (`const building = (body?.building ?? '').toString().trim() || '-'`). Removed the `!building` validation — only `name` is required now (error: "Nama lokasi wajib diisi").
+- Updated `src/app/api/locations/[id]/route.ts` (PATCH): if `building` is explicitly sent empty, default it to `'-'`. Removed the `data.building === ''` check — only `data.name === ''` errors.
+- Updated the location card display: building is shown only for legacy locations that have a real value (not '-'). New locations (building = '-') show "Lt. <floor>" or nothing — no ugly "-" displayed.
+- Verified via curl (teknisi token): POST `/api/locations` with `{name, floor, description}` (no building) → HTTP 201, response has `building: "-"` (defaulted). ✅ Cleanup delete → HTTP 200.
+- Verified via Agent Browser: opened Tambah Lokasi dialog → form now shows only "Nama Lokasi", "Lantai", "Deskripsi (opsional)" — no "Gedung" field. ✅
+- `bun run lint` passes (0 errors, 3 warnings). dev.log clean (HTTP 200).
+
+Stage Summary:
+- The Add/Edit Location form now has only 3 fields: Nama Lokasi, Lantai, Deskripsi. The "Gedung" field is removed from the UI.
+- The API + DB keep the `building` column (NOT NULL) for backward compat with existing locations that have real building values (Gedung A, Gedung B). New locations get `building = '-'` by default, and the display hides the building for those (shows "Lt. <floor>" instead).
+- Legacy locations still show their building value in the card.

@@ -133,8 +133,11 @@ export function LocationsView() {
                     <div className="min-w-0">
                       <p className="truncate font-medium leading-tight">{loc.name}</p>
                       <p className="text-muted-foreground text-xs">
-                        {loc.building}
-                        {loc.floor ? ` · ${loc.floor}` : ''}
+                        {loc.building && loc.building !== '-'
+                          ? `${loc.building}${loc.floor ? ` · Lt. ${loc.floor}` : ''}`
+                          : loc.floor
+                            ? `Lt. ${loc.floor}`
+                            : ''}
                       </p>
                     </div>
                   </div>
@@ -182,14 +185,12 @@ function LocationForm({
   const isEdit = !!report
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState(report?.name ?? '')
-  const [building, setBuilding] = React.useState(report?.building ?? '')
   const [floor, setFloor] = React.useState(report?.floor ?? '')
   const [description, setDescription] = React.useState(report?.description ?? '')
   const [submitting, setSubmitting] = React.useState(false)
 
   function reset() {
     setName('')
-    setBuilding('')
     setFloor('')
     setDescription('')
   }
@@ -198,7 +199,7 @@ function LocationForm({
     e.preventDefault()
     setSubmitting(true)
     try {
-      const body = { name, building, floor: floor || null, description: description || null }
+      const body = { name, floor: floor || null, description: description || null }
       if (isEdit && report) {
         await apiFetch(`/api/locations/${report.id}`, {
           method: 'PATCH',
@@ -247,17 +248,7 @@ function LocationForm({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="loc-building">Gedung</Label>
-            <Input
-              id="loc-building"
-              value={building}
-              onChange={(e) => setBuilding(e.target.value)}
-              placeholder="Contoh: Gedung A"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="loc-floor">Lantai (opsional)</Label>
+            <Label htmlFor="loc-floor">Lantai</Label>
             <Input
               id="loc-floor"
               value={floor}
