@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,10 +29,30 @@ export const metadata: Metadata = {
     "helpdesk",
   ],
   authors: [{ name: "SMO Team" }],
-  icons: {
-    icon: "/smo-icon.png",
-    apple: "/smo-icon.png",
+  manifest: "/manifest.json",
+  applicationName: "SMO",
+  appleWebApp: {
+    capable: true,
+    title: "SMO",
+    statusBarStyle: "default",
   },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/smo-icon.png", sizes: "678x695", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+    shortcut: ["/smo-icon.png"],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f766e",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

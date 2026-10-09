@@ -1,0 +1,64 @@
+{
+  "name": "SMO — Save My Office",
+  "short_name": "SMO",
+  "description": "Sistem manajemen laporan kerusakan bangunan. Laporkan, tugaskan, dan selesaikan kerusakan dengan cepat.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#0f766e",
+  "theme_color": "#0f766e",
+  "lang": "id",
+  "dir": "ltr",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Buat Laporan",
+      "short_name": "Buat",
+      "description": "Buat laporan kerusakan baru",
+      "url": "/?action=new-report",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Riwayat Laporan",
+      "short_name": "Riwayat",
+      "description": "Lihat daftar riwayat laporan",
+      "url": "/?view=reports",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Jadwal Maintenance",
+      "short_name": "Jadwal",
+      "description": "Lihat jadwal maintenance",
+      "url": "/?view=schedules",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

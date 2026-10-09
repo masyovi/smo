@@ -34,6 +34,20 @@ export default function Home() {
     }
   }, [])
 
+  // Register the service worker on every load (PWA installability requires a
+  // SW with a fetch handler). The Topbar also registers it for push, but
+  // registering here ensures it's active even on the login screen so the
+  // browser sees the app as installable immediately.
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!('serviceWorker' in navigator)) return
+    navigator.serviceWorker
+      .register('/sw.js', { scope: '/' })
+      .catch(() => {
+        // SW registration can fail on HTTP/gateway — ignore.
+      })
+  }, [])
+
   if (authLoading) {
     return <TechnicianLoader />
   }

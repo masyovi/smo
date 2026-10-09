@@ -917,3 +917,43 @@ Stage Summary:
   - npm scripts: `cap:sync`, `cap:open`, `cap:icons`.
 - Build flow: deploy app → set URL → `cap:sync` → open in Android Studio → Build APK.
 - The web app is unaffected — dev server runs normally (HTTP 200), lint clean.
+
+---
+Task ID: 27
+Agent: main
+Task: Add PWA support (installable in the browser)
+
+Work Log:
+- Generated PWA icons from the SMO logo (`public/smo-icon.png`) via a `scripts/gen-pwa-icons.ts` (uses `sharp`):
+  - `public/icons/icon-192.png`, `icon-512.png` (any purpose).
+  - `public/icons/maskable-192.png`, `maskable-512.png` (maskable, with emerald padding + 80% safe zone).
+  - `public/icons/apple-touch-icon.png` (180×180).
+  - `public/icons/favicon-16.png`, `favicon-32.png`.
+- Created `public/manifest.json` — the web app manifest:
+  - `name`: "SMO — Save My Office", `short_name`: "SMO".
+  - `start_url`: "/", `scope`: "/", `display`: "standalone" (with `display_override` minimal-ui fallback).
+  - `background_color` + `theme_color`: `#0f766e` (emerald-700).
+  - `lang`: "id", `categories`: business/productivity/utilities.
+  - 4 icons (192/512 × any/maskable).
+  - 3 app shortcuts: Buat Laporan, Riwayat Laporan, Jadwal Maintenance (with `?view=` query hints).
+- Updated `public/sw.js` — added a `fetch` event handler (required for PWA installability). Network-first: tries the network, caches successful GETs, falls back to cache (and the offline `/index.html`) when offline. Skips non-GET + cross-origin requests.
+- Updated `src/app/layout.tsx`:
+  - `metadata.manifest = "/manifest.json"` → Next adds `<link rel="manifest">`.
+  - `metadata.appleWebApp = { capable: true, title: "SMO", statusBarStyle: "default" }`.
+  - `metadata.icons` → icon (192/512/678), apple-touch-icon (180), shortcut.
+  - New `viewport` export with `themeColor: "#0f766e"`, `viewportFit: "cover"` (for safe areas on notched devices).
+- Updated `src/app/page.tsx` — added an unconditional `navigator.serviceWorker.register('/sw.js')` on mount (independent of auth state) so the SW is registered on the LOGIN screen too, making the app installable immediately (not just post-login).
+- Verified via Agent Browser:
+  - `<link rel="manifest" href=".../manifest.json">` present. ✅
+  - `<meta name="theme-color" content="#0f766e">` present. ✅
+  - `<link rel="apple-touch-icon">` present. ✅
+  - `navigator.serviceWorker.getRegistrations()` → 1 registration, script `…/sw.js`. ✅
+  - `/manifest.json` served (HTTP 200), manifest `name`: "SMO — Save My Office", 4 icons. ✅
+- `bun run lint` passes (0 errors, 3 pre-existing warnings). dev.log clean (HTTP 200).
+- Also: restored `.env` (it got reset again during a package operation) + re-applied `chmod 444`; restarted the dev server.
+
+Stage Summary:
+- SMO is now a full PWA — installable in Chrome/Edge ("Install" button in the address bar) and on mobile ("Add to Home Screen"). Installed app opens in standalone mode (no browser chrome), with the SMO emerald theme color, the SMO launcher icon, and 3 shortcuts (Buat/Riwayat/Jadwal).
+- Prerequisites met: web manifest with 192+512 icons (any + maskable), a service worker with a fetch handler, theme-color meta, apple-touch-icon, viewport with safe-area.
+- Offline: the SW caches GET responses + serves the offline fallback page when the network is down (the app still needs the server for DB/API, so it can't work fully offline, but it shows a friendly "Menghubungkan ke server…" instead of a blank screen).
+- Combined with the Capacitor Android wrapper (Task 26), SMO now has both PWA (browser install) AND native Android build paths.
