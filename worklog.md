@@ -980,3 +980,24 @@ Stage Summary:
   1. Uninstall the existing PWA (chrome://apps → right-click SMO → Remove, OR the PWA shortcut → Uninstall).
   2. Reload the app page in the browser (the new `smo-v2` SW activates + evicts the old cache + Chrome re-fetches the manifest + new icons).
   3. Re-install the PWA (Install button in the address bar). The new install uses the full-bleed emerald icons → the taskbar shows a solid emerald square with the SMO logo.
+
+---
+Task ID: 29
+Agent: main
+Task: Fix PWA taskbar icon — remove alpha channel from icons (root cause of blank taskbar icon)
+
+Work Log:
+- **Root cause identified via the user's screenshot + VLM**: the taskbar had NO emerald SMO icon — just generic icons (Chrome globe, etc.). Diagnosed that the PWA icons generated in Task 28 had an **alpha channel** (`hasAlpha: true`, 4-channel RGBA PNG). Windows/Chrome renders manifest icons WITH an alpha channel as transparent/blank in the taskbar — so the icon appeared "missing".
+- Fixed `scripts/gen-pwa-icons.ts`:
+  - Added `.flatten({ background: color })` (merge any residual transparency onto emerald) + `.removeAlpha()` (strip the alpha channel entirely) to the `buildIcon()` pipeline.
+  - Verified: `icon-192.png` + `icon-512.png` now report `channels: 3, hasAlpha: false, space: srgb` — proper 3-channel opaque RGB PNGs.
+- Generated a `favicon.ico` (32×32, no alpha) as a Windows fallback (Chrome sometimes uses the favicon for the taskbar/start-menu shortcut if the manifest icons aren't picked up).
+- Bumped the SW cache `smo-v2` → `smo-v3` (+ the activate handler evicts all non-v3 caches) so the old alpha-channel icons are dropped from cache.
+- Updated `layout.tsx` metadata.icons to include `/icons/favicon.ico` (32×32) as the first entry + use `/icons/icon-512.png` for the shortcut icon.
+- Verified all icons served with correct content-types: icon-192/512.png (image/png), maskable-512.png (image/png), apple-touch-icon.png (image/png), favicon.ico (image/x-icon) — all HTTP 200.
+- `bun run lint` passes (0 errors, 3 warnings). dev.log clean.
+
+Stage Summary:
+- The PWA taskbar icon issue is fixed at the root: icons are now 3-channel opaque RGB PNGs (no alpha channel), which Windows/Chrome render as solid emerald squares with the SMO logo in the taskbar.
+- Added a favicon.ico fallback + bumped the SW cache.
+- IMPORTANT: the user must uninstall the old PWA + reload + reinstall for Chrome to re-fetch the manifest + the new no-alpha icons (the old install cached the alpha-channel icons).

@@ -20,7 +20,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-const CACHE_VERSION = 'smo-v2';
+const CACHE_VERSION = 'smo-v3';
 
 // Fetch handler — required for PWA installability. Network-first: try the
 // network, fall back to cache (for the offline fallback page) when offline.
