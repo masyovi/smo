@@ -8,8 +8,19 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  // Claim clients + evict old caches so updated icons/assets are used.
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((k) => k !== CACHE_VERSION).map((k) => caches.delete(k))
+      );
+      await self.clients.claim();
+    })()
+  );
 });
+
+const CACHE_VERSION = 'smo-v2';
 
 // Fetch handler — required for PWA installability. Network-first: try the
 // network, fall back to cache (for the offline fallback page) when offline.
@@ -27,7 +38,7 @@ self.addEventListener('fetch', (event) => {
         const fresh = await fetch(req);
         // Cache successful navigations + static assets for offline use.
         if (fresh && (fresh.ok || fresh.type === 'opaque')) {
-          const cache = await caches.open('smo-v1');
+          const cache = await caches.open(CACHE_VERSION);
           cache.put(req, fresh.clone());
         }
         return fresh;

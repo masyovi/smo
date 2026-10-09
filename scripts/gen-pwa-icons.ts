@@ -5,46 +5,80 @@ const SRC = 'public/smo-icon.png'
 const OUT_DIR = 'public/icons'
 mkdirSync(OUT_DIR, { recursive: true })
 
-const sizes = [192, 512]
+// Emerald brand background — a solid fill so the icon is clearly visible on
+// any taskbar/dock (no transparent/white edges that vanish on dark taskbars).
+const EMERALD = { r: 16, g: 118, b: 110, alpha: 1 } // #0f766e
+const EMERALD_LIGHT = { r: 20, g: 184, b: 166, alpha: 1 } // #14b8a6 (teal-500)
+
+// Build a full-bleed emerald background image of the given size.
+function solidBg(size: number, color = EMERALD) {
+  return sharp({
+    create: { width: size, height: size, channels: 4, background: color },
+  }).png()
+}
 
 async function main() {
-  for (const size of sizes) {
-    await sharp(SRC)
-      .resize(size, size, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
+  // 1) "any" purpose icons — full-bleed emerald with the logo centered at ~78%
+  //    so it fills the square nicely and is unmistakable on the taskbar.
+  for (const size of [192, 512]) {
+    const logo = await sharp(SRC)
+      .resize({
+        width: Math.round(size * 0.78),
+        height: Math.round(size * 0.78),
+        fit: 'contain',
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
+      })
+      .png()
+      .toBuffer()
+    await solidBg(size)
+      .composite([{ input: logo, gravity: 'center' }])
       .png()
       .toFile(`${OUT_DIR}/icon-${size}.png`)
     console.log('generated', `icon-${size}.png`)
   }
-  // Maskable icon: same image with padding so the safe zone (~80%) keeps the
-  // logo inside the masked circle on Android.
+
+  // 2) "maskable" purpose icons — emerald background + logo at ~62% so the
+  //    safe zone (~80%) keeps the logo inside any masked circle/squircle.
   for (const size of [192, 512]) {
-    await sharp(SRC)
+    const logo = await sharp(SRC)
       .resize({
-        width: Math.round(size * 0.8),
-        height: Math.round(size * 0.8),
+        width: Math.round(size * 0.62),
+        height: Math.round(size * 0.62),
         fit: 'contain',
-        background: { r: 255, g: 255, b: 255, alpha: 0 },
+        background: { r: 0, g: 0, b: 0, alpha: 0 },
       })
-      .extend({
-        top: Math.round(size * 0.1),
-        bottom: Math.round(size * 0.1),
-        left: Math.round(size * 0.1),
-        right: Math.round(size * 0.1),
-        background: { r: 16, g: 118, b: 110, alpha: 1 }, // emerald-700 #0f766e
-      })
+      .png()
+      .toBuffer()
+    await solidBg(size, EMERALD_LIGHT)
+      .composite([{ input: logo, gravity: 'center' }])
       .png()
       .toFile(`${OUT_DIR}/maskable-${size}.png`)
     console.log('generated', `maskable-${size}.png`)
   }
-  // Apple touch icon (180×180)
-  await sharp(SRC)
-    .resize(180, 180, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
-    .png()
-    .toFile(`${OUT_DIR}/apple-touch-icon.png`)
-  console.log('generated', 'apple-touch-icon.png')
-  // Favicon 32×32 + 16×16
+
+  // 3) Apple touch icon (180×180) — full-bleed emerald + logo.
+  {
+    const logo = await sharp(SRC)
+      .resize(140, 140, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer()
+    await solidBg(180)
+      .composite([{ input: logo, gravity: 'center' }])
+      .png()
+      .toFile(`${OUT_DIR}/apple-touch-icon.png`)
+    console.log('generated', 'apple-touch-icon.png')
+  }
+
+  // 4) Favicons (16 + 32) — full-bleed emerald + logo (sized down).
   for (const s of [16, 32]) {
-    await sharp(SRC).resize(s, s, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toFile(`${OUT_DIR}/favicon-${s}.png`)
+    const logo = await sharp(SRC)
+      .resize(Math.round(s * 0.78), Math.round(s * 0.78), { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png()
+      .toBuffer()
+    await solidBg(s)
+      .composite([{ input: logo, gravity: 'center' }])
+      .png()
+      .toFile(`${OUT_DIR}/favicon-${s}.png`)
   }
   console.log('done')
 }

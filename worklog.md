@@ -957,3 +957,26 @@ Stage Summary:
 - Prerequisites met: web manifest with 192+512 icons (any + maskable), a service worker with a fetch handler, theme-color meta, apple-touch-icon, viewport with safe-area.
 - Offline: the SW caches GET responses + serves the offline fallback page when the network is down (the app still needs the server for DB/API, so it can't work fully offline, but it shows a friendly "Menghubungkan ke server…" instead of a blank screen).
 - Combined with the Capacitor Android wrapper (Task 26), SMO now has both PWA (browser install) AND native Android build paths.
+
+---
+Task ID: 28
+Agent: main
+Task: Fix PWA taskbar icon — regenerate icons with solid full-bleed emerald background
+
+Work Log:
+- Root cause: the PWA icons generated in Task 27 used a WHITE background (`fit: 'contain'` + white fill) with the SMO logo centered small. On a dark Windows taskbar, a white-background icon with a small logo can look empty/generic, and Chrome's PWA install sometimes shows a default icon when the manifest icon isn't a recognizable full-bleed graphic.
+- Rewrote `scripts/gen-pwa-icons.ts` to generate **full-bleed icons**:
+  - `icon-192/512.png` (any purpose): solid emerald (#0f766e) background filling the whole square + the SMO logo composited centered at ~78% size (fills the square, unmistakable on any taskbar/dock).
+  - `maskable-192/512.png`: teal (#14b8a6) background + logo at ~62% (within the 80% safe zone so it survives any masked-circle crop on Android).
+  - `apple-touch-icon.png` (180×180): full-bleed emerald + logo.
+  - `favicon-16/32.png`: full-bleed emerald + logo.
+- Regenerated all icons. Verified via z-ai vision (VLM) on `icon-512.png`: "a solid colored background (deep emerald/teal green) that fills the entire square, logo centered, not a white/transparent background." ✅
+- Bumped the service worker cache version `smo-v1` → `smo-v2` in `public/sw.js` + added an `activate` handler that evicts old caches (`keys.filter(k => k !== 'smo-v2').delete`). This forces Chrome to drop the old (white-bg) cached icons and fetch the new full-bleed ones on next load.
+- Verified: `/icons/icon-512.png` served (HTTP 200), `/manifest.json` references icon-192/512/maskable-192/maskable-512 correctly. Lint passes (0 errors, 3 warnings).
+
+Stage Summary:
+- The PWA icons are now full-bleed emerald squares with the SMO logo — clearly visible on any taskbar/dock (Windows, macOS, Android) instead of the old white-background icon that vanished or looked generic.
+- IMPORTANT for the user: the already-installed PWA has the OLD icons cached. To get the new taskbar icon, the user must:
+  1. Uninstall the existing PWA (chrome://apps → right-click SMO → Remove, OR the PWA shortcut → Uninstall).
+  2. Reload the app page in the browser (the new `smo-v2` SW activates + evicts the old cache + Chrome re-fetches the manifest + new icons).
+  3. Re-install the PWA (Install button in the address bar). The new install uses the full-bleed emerald icons → the taskbar shows a solid emerald square with the SMO logo.
