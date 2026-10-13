@@ -1,0 +1,12 @@
+# Don't deploy these to Vercel (they're for local dev / Android / DB scripts).
+android/
+scripts/
+db/
+upload/
+*.log
+dev.log
+server.log
+.env
+.env.local
+.next/
+agent-ctx/

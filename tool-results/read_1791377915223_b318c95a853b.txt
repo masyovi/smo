@@ -1,0 +1,824 @@
+     1→'use client'
+     2→
+     3→import * as React from 'react'
+     4→import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+     5→import { motion } from 'framer-motion'
+     6→import { toast } from 'sonner'
+     7→import {
+     8→  AlertTriangle,
+     9→  ArrowLeft,
+    10→  Building2,
+    11→  CalendarDays,
+    12→  CheckCircle2,
+    13→  Clock,
+    14→  Eye,
+    15→  ImageOff,
+    16→  Loader2,
+    17→  MapPin,
+    18→  MessageSquare,
+    19→  Pencil,
+    20→  Send,
+    21→  Tag,
+    22→  Trash2,
+    23→  User,
+    24→  UserCog,
+    25→  Wrench,
+    26→} from 'lucide-react'
+    27→
+    28→import { Button } from '@/components/ui/button'
+    29→import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+    30→import { Input } from '@/components/ui/input'
+    31→import { Textarea } from '@/components/ui/textarea'
+    32→import { Label } from '@/components/ui/label'
+    33→import { Badge } from '@/components/ui/badge'
+    34→import {
+    35→  Select,
+    36→  SelectContent,
+    37→  SelectItem,
+    38→  SelectTrigger,
+    39→  SelectValue,
+    40→} from '@/components/ui/select'
+    41→import {
+    42→  AlertDialog,
+    43→  AlertDialogAction,
+    44→  AlertDialogCancel,
+    45→  AlertDialogContent,
+    46→  AlertDialogDescription,
+    47→  AlertDialogFooter,
+    48→  AlertDialogHeader,
+    49→  AlertDialogTitle,
+    50→  AlertDialogTrigger,
+    51→} from '@/components/ui/alert-dialog'
+    52→import { Skeleton } from '@/components/ui/skeleton'
+    53→import {
+    54→  Dialog,
+    55→  DialogContent,
+    56→  DialogDescription,
+    57→  DialogFooter,
+    58→  DialogHeader,
+    59→  DialogTitle,
+    60→  DialogTrigger,
+    61→} from '@/components/ui/dialog'
+    62→
+    63→import { apiFetch, ApiError } from '@/lib/api'
+    64→import { useAppStore } from '@/lib/store'
+    65→import {
+    66→  STATUS_CONFIG,
+    67→  STATUS_LIST,
+    68→  PRIORITY_CONFIG,
+    69→  PRIORITY_LIST,
+    70→  ROLE_CONFIG,
+    71→  ACTION_LABELS,
+    72→  formatDateTime,
+    73→  timeAgo,
+    74→  type ReportStatus,
+    75→  type ReportPriority,
+    76→  type ReportAction,
+    77→  type UserRole,
+    78→} from '@/lib/types'
+    79→import { StatusBadge } from '@/components/app/status-badge'
+    80→import { PriorityBadge } from '@/components/app/priority-badge'
+    81→import { RoleBadge } from '@/components/app/role-badge'
+    82→import { CategoryIcon } from '@/components/app/category-icon'
+    83→import { EmptyState } from '@/components/app/empty-state'
+    84→import { cn } from '@/lib/utils'
+    85→
+    86→type ReportDetail = {
+    87→  id: string
+    88→  title: string
+    89→  description: string
+    90→  status: ReportStatus
+    91→  priority: ReportPriority
+    92→  imageUrl: string | null
+    93→  resolution: string | null
+    94→  locationId: string
+    95→  categoryId: string
+    96→  reporterId: string
+    97→  assigneeId: string | null
+    98→  createdAt: string
+    99→  updatedAt: string
+   100→  location: { id: string; name: string; building: string; floor: string | null; description: string | null } | null
+   101→  category: { id: string; name: string; icon: string | null } | null
+   102→  reporter: {
+   103→    id: string
+   104→    name: string
+   105→    email: string
+   106→    role: UserRole
+   107→    phone: string | null
+   108→    department: string | null
+   109→  } | null
+   110→  assignee: {
+   111→    id: string
+   112→    name: string
+   113→    email: string
+   114→    role: UserRole
+   115→    phone: string | null
+   116→    department: string | null
+   117→  } | null
+   118→  history: Array<{
+   119→    id: string
+   120→    userId: string
+   121→    action: ReportAction
+   122→    message: string | null
+   123→    previousValue: string | null
+   124→    newValue: string | null
+   125→    createdAt: string
+   126→    user: { id: string; name: string; email: string; role: UserRole }
+   127→  }>
+   128→}
+   129→
+   130→const ACTION_ICON: Record<ReportAction, typeof CheckCircle2> = {
+   131→  CREATED: CheckCircle2,
+   132→  STATUS_CHANGED: ArrowLeft,
+   133→  PRIORITY_CHANGED: AlertTriangle,
+   134→  ASSIGNED: UserCog,
+   135→  COMMENTED: MessageSquare,
+   136→  RESOLVED: CheckCircle2,
+   137→  REOPENED: Clock,
+   138→}
+   139→
+   140→export function ReportDetailView() {
+   141→  const reportId = useAppStore((s) => s.activeReportId)
+   142→  const setView = useAppStore((s) => s.setView)
+   143→  const user = useAppStore((s) => s.user)
+   144→  const qc = useQueryClient()
+   145→
+   146→  const { data, isLoading, error, refetch } = useQuery<ReportDetail>({
+   147→    queryKey: ['report', reportId],
+   148→    queryFn: () => apiFetch<ReportDetail>(`/api/reports/${reportId}`),
+   149→    enabled: !!reportId && !!user,
+   150→  })
+   151→
+   152→  if (!reportId) {
+   153→    return (
+   154→      <EmptyState
+   155→        icon={AlertTriangle}
+   156→        title="Tidak ada laporan yang dipilih"
+   157→        description="Pilih laporan dari daftar untuk melihat detail."
+   158→        action={{ label: 'Kembali ke Laporan', onClick: () => setView('reports') }}
+   159→      />
+   160→    )
+   161→  }
+   162→
+   163→  if (isLoading) return <DetailSkeleton />
+   164→  if (error) {
+   165→    return (
+   166→      <EmptyState
+   167→        icon={AlertTriangle}
+   168→        title="Gagal memuat laporan"
+   169→        description={(error as Error).message}
+   170→        action={{ label: 'Kembali', onClick: () => setView('reports') }}
+   171→      />
+   172→    )
+   173→  }
+   174→  if (!data) return null
+   175→
+   176→  const isGuest = user?.role === 'GUEST'
+   177→  const isManager = user?.role === 'ADMIN' || user?.role === 'TECHNICIAN'
+   178→  const isOwner = user?.id === data.reporterId
+   179→  const canEditStatus = isManager
+   180→  const canAssign = isManager
+   181→  const canDelete = isManager
+   182→  const canEditMeta = !isGuest && isOwner && data.status === 'PENDING'
+   183→
+   184→  return (
+   185→    <motion.div
+   186→      initial={{ opacity: 0, y: 6 }}
+   187→      animate={{ opacity: 1, y: 0 }}
+   188→      transition={{ duration: 0.25, ease: 'easeOut' }}
+   189→      className="space-y-5"
+   190→    >
+   191→      <button
+   192→        type="button"
+   193→        onClick={() => setView('reports')}
+   194→        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+   195→      >
+   196→        <ArrowLeft className="size-4" />
+   197→        Kembali ke daftar laporan
+   198→      </button>
+   199→
+   200→      {/* Guest read-only badge */}
+   201→      {isGuest && (
+   202→        <div className="flex items-center justify-end">
+   203→          <Badge
+   204→            variant="outline"
+   205→            className="bg-teal-100 text-teal-700 border-teal-200 dark:bg-teal-950/50 dark:text-teal-300 dark:border-teal-900"
+   206→          >
+   207→            <Eye className="size-3" />
+   208→            Mode tamu — hanya melihat
+   209→          </Badge>
+   210→        </div>
+   211→      )}
+   212→
+   213→      {/* Hero */}
+   214→      <Card>
+   215→        <CardContent className="space-y-4 px-4 py-4 sm:px-6 sm:py-5">
+   216→          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+   217→            <div className="min-w-0 space-y-2">
+   218→              <div className="flex flex-wrap items-center gap-2">
+   219→                <StatusBadge status={data.status} withDot />
+   220→                <PriorityBadge priority={data.priority} />
+   221→              </div>
+   222→              <h2 className="text-xl font-semibold leading-tight tracking-tight sm:text-2xl">
+   223→                {data.title}
+   224→              </h2>
+   225→            </div>
+   226→            {canDelete && (
+   227→              <DeleteReportButton
+   228→                reportId={data.id}
+   229→                onDeleted={() => {
+   230→                  qc.invalidateQueries({ queryKey: ['reports'] })
+   231→                  qc.invalidateQueries({ queryKey: ['stats'] })
+   232→                  setView('reports')
+   233→                }}
+   234→              />
+   235→            )}
+   236→          </div>
+   237→
+   238→          <div className="grid grid-cols-2 gap-3 border-t pt-4 text-sm sm:grid-cols-4">
+   239→            <InfoTile icon={MapPin} label="Lokasi">
+   240→              {data.location ? (
+   241→                <>
+   242→                  <div className="font-medium">{data.location.name}</div>
+   243→                  <div className="text-muted-foreground text-xs">
+   244→                    {data.location.building}
+   245→                    {data.location.floor ? ` · ${data.location.floor}` : ''}
+   246→                  </div>
+   247→                </>
+   248→              ) : (
+   249→                '—'
+   250→              )}
+   251→            </InfoTile>
+   252→            <InfoTile icon={Tag} label="Kategori">
+   253→              <div className="flex items-center gap-1.5 font-medium">
+   254→                <CategoryIcon
+   255→                  name={data.category?.icon}
+   256→                  className="size-3.5 text-muted-foreground"
+   257→                />
+   258→                {data.category?.name ?? '—'}
+   259→              </div>
+   260→            </InfoTile>
+   261→            <InfoTile icon={User} label="Pelapor">
+   262→              <div className="font-medium">{data.reporter?.name ?? '—'}</div>
+   263→              <div className="text-muted-foreground text-xs">
+   264→                {data.reporter?.department ?? '—'}
+   265→              </div>
+   266→            </InfoTile>
+   267→            <InfoTile icon={UserCog} label="Ditugaskan">
+   268→              <div className="font-medium">
+   269→                {data.assignee?.name ?? 'Belum ditugaskan'}
+   270→              </div>
+   271→              {data.assignee && (
+   272→                <div className="text-muted-foreground text-xs">
+   273→                  {data.assignee.email}
+   274→                </div>
+   275→              )}
+   276→            </InfoTile>
+   277→          </div>
+   278→
+   279→          <div className="flex flex-wrap gap-4 border-t pt-3 text-xs text-muted-foreground">
+   280→            <span className="inline-flex items-center gap-1.5">
+   281→              <CalendarDays className="size-3.5" />
+   282→              Dibuat {formatDateTime(data.createdAt)}
+   283→            </span>
+   284→            <span className="inline-flex items-center gap-1.5">
+   285→              <Clock className="size-3.5" />
+   286→              Diperbarui {timeAgo(data.updatedAt)}
+   287→            </span>
+   288→          </div>
+   289→        </CardContent>
+   290→      </Card>
+   291→
+   292→      {/* Description */}
+   293→      <Card>
+   294→        <CardHeader className="pb-3">
+   295→          <CardTitle className="text-base">Deskripsi</CardTitle>
+   296→        </CardHeader>
+   297→        <CardContent>
+   298→          <p className="text-sm whitespace-pre-wrap leading-relaxed">
+   299→            {data.description}
+   300→          </p>
+   301→          {data.imageUrl && (
+   302→            <div className="mt-4 overflow-hidden rounded-lg border bg-muted/40">
+   303→              <img
+   304→                src={data.imageUrl}
+   305→                alt={data.title}
+   306→                className="max-h-96 w-full object-cover"
+   307→                onError={(e) => {
+   308→                  e.currentTarget.style.display = 'none'
+   309→                }}
+   310→              />
+   311→            </div>
+   312→          )}
+   313→        </CardContent>
+   314→      </Card>
+   315→
+   316→      {/* Resolution (read-only display) */}
+   317→      {data.resolution && (
+   318→        <Card className="border-emerald-200 bg-emerald-50/50 dark:border-emerald-900/60 dark:bg-emerald-950/20">
+   319→          <CardHeader className="pb-3">
+   320→            <CardTitle className="text-emerald-700 dark:text-emerald-300 flex items-center gap-2 text-base">
+   321→              <CheckCircle2 className="size-4" />
+   322→              Resolusi
+   323→            </CardTitle>
+   324→          </CardHeader>
+   325→          <CardContent>
+   326→            <p className="text-sm whitespace-pre-wrap leading-relaxed">
+   327→              {data.resolution}
+   328→            </p>
+   329→          </CardContent>
+   330→        </Card>
+   331→      )}
+   332→
+   333→      {/* Action panel — hidden for guests */}
+   334→      {canEditStatus && (
+   335→        <ActionPanel
+   336→          report={data}
+   337→          currentUserId={user?.id ?? ''}
+   338→          canAssign={canAssign}
+   339→          onUpdated={() => {
+   340→            qc.invalidateQueries({ queryKey: ['report', reportId] })
+   341→            qc.invalidateQueries({ queryKey: ['reports'] })
+   342→            qc.invalidateQueries({ queryKey: ['stats'] })
+   343→          }}
+   344→        />
+   345→      )}
+   346→
+   347→      {/* Owner edit panel — hidden for guests */}
+   348→      {canEditMeta && (
+   349→        <OwnerEditPanel
+   350→          report={data}
+   351→          onUpdated={() => {
+   352→            qc.invalidateQueries({ queryKey: ['report', reportId] })
+   353→            qc.invalidateQueries({ queryKey: ['reports'] })
+   354→          }}
+   355→        />
+   356→      )}
+   357→
+   358→      {/* Comment composer — hidden for guests (read-only) */}
+   359→      {!isGuest && (
+   360→        <CommentComposer
+   361→          reportId={data.id}
+   362→          onCommented={() => {
+   363→            qc.invalidateQueries({ queryKey: ['report', reportId] })
+   364→          }}
+   365→        />
+   366→      )}
+   367→
+   368→      {/* History timeline */}
+   369→      <Card>
+   370→        <CardHeader className="pb-3">
+   371→          <CardTitle className="text-base">Riwayat Aktivitas</CardTitle>
+   372→          <CardDescription className="text-xs">
+   373→            Semua perubahan, komentar, dan penugasan
+   374→          </CardDescription>
+   375→        </CardHeader>
+   376→        <CardContent className="px-4 sm:px-6">
+   377→          {data.history.length === 0 ? (
+   378→            <p className="text-muted-foreground text-sm">
+   379→              Belum ada riwayat aktivitas.
+   380→            </p>
+   381→          ) : (
+   382→            <ol className="relative space-y-4 border-l pl-5">
+   383→              {data.history.map((h) => {
+   384→                const Icon =
+   385→                  ACTION_ICON[h.action as ReportAction] ?? MessageSquare
+   386→                return (
+   387→                  <li key={h.id} className="relative">
+   388→                    <span className="bg-background ring-border absolute -left-[27px] flex size-6 items-center justify-center rounded-full ring-2">
+   389→                      <Icon className="size-3 text-muted-foreground" />
+   390→                    </span>
+   391→                    <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between">
+   392→                      <div className="flex items-center gap-2">
+   393→                        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+   394→                          {ACTION_LABELS[h.action as ReportAction] ?? h.action}
+   395→                        </span>
+   396→                        <span className="text-muted-foreground text-xs">
+   397→                          oleh {h.user?.name ?? '—'}
+   398→                        </span>
+   399→                      </div>
+   400→                      <span
+   401→                        className="text-muted-foreground/80 text-[11px]"
+   402→                        title={formatDateTime(h.createdAt)}
+   403→                      >
+   404→                        {timeAgo(h.createdAt)}
+   405→                      </span>
+   406→                    </div>
+   407→                    {h.message && (
+   408→                      <p className="mt-1 text-sm">{h.message}</p>
+   409→                    )}
+   410→                    {h.action === 'COMMENTED' && h.message && (
+   411→                      <div className="bg-muted mt-1.5 rounded-md p-2 text-sm">
+   412→                        {h.message}
+   413→                      </div>
+   414→                    )}
+   415→                  </li>
+   416→                )
+   417→              })}
+   418→            </ol>
+   419→          )}
+   420→        </CardContent>
+   421→      </Card>
+   422→    </motion.div>
+   423→  )
+   424→}
+   425→
+   426→function InfoTile({
+   427→  icon: Icon,
+   428→  label,
+   429→  children,
+   430→}: {
+   431→  icon: typeof MapPin
+   432→  label: string
+   433→  children: React.ReactNode
+   434→}) {
+   435→  return (
+   436→    <div className="space-y-0.5">
+   437→      <div className="text-muted-foreground inline-flex items-center gap-1 text-[11px] uppercase tracking-wide">
+   438→        <Icon className="size-3" />
+   439→        {label}
+   440→      </div>
+   441→      <div className="text-sm">{children}</div>
+   442→    </div>
+   443→  )
+   444→}
+   445→
+   446→function ActionPanel({
+   447→  report,
+   448→  currentUserId,
+   449→  canAssign,
+   450→  onUpdated,
+   451→}: {
+   452→  report: ReportDetail
+   453→  currentUserId: string
+   454→  canAssign: boolean
+   455→  onUpdated: () => void
+   456→}) {
+   457→  const qc = useQueryClient()
+   458→  const [status, setStatus] = React.useState<ReportStatus>(report.status)
+   459→  const [priority, setPriority] = React.useState<ReportPriority>(report.priority)
+   460→  const [resolution, setResolution] = React.useState(report.resolution ?? '')
+   461→  const [assigneeId, setAssigneeId] = React.useState<string>(report.assigneeId ?? '__none__')
+   462→  const [submitting, setSubmitting] = React.useState(false)
+   463→
+   464→  // Keep local state synced when report changes
+   465→  React.useEffect(() => {
+   466→    setStatus(report.status)
+   467→    setPriority(report.priority)
+   468→    setResolution(report.resolution ?? '')
+   469→    setAssigneeId(report.assigneeId ?? '__none__')
+   470→  }, [report.id, report.status, report.priority, report.resolution, report.assigneeId])
+   471→
+   472→  const { data: technicians } = useQuery<{
+   473→    id: string
+   474→    name: string
+   475→    email: string
+   476→    role: string
+   477→  }[]>({
+   478→    queryKey: ['technicians'],
+   479→    queryFn: async () => {
+   480→      const all = await apiFetch<Array<{ id: string; name: string; email: string; role: string }>>(
+   481→        '/api/users'
+   482→      )
+   483→      return all.filter((u) => u.role === 'TECHNICIAN' || u.role === 'ADMIN')
+   484→    },
+   485→    // Only fetch the user list when the caller actually has permission to assign.
+   486→    enabled: canAssign,
+   487→  })
+   488→
+   489→  const statusChanged = status !== report.status
+   490→  const priorityChanged = priority !== report.priority
+   491→  const resolutionChanged = resolution !== (report.resolution ?? '')
+   492→  const assigneeChanged =
+   493→    (assigneeId === '__none__' ? null : assigneeId) !==
+   494→    (report.assigneeId ?? null)
+   495→
+   496→  const hasChange =
+   497→    statusChanged || priorityChanged || resolutionChanged || assigneeChanged
+   498→
+   499→  async function handleSave() {
+   500→    setSubmitting(true)
+   501→    const body: Record<string, unknown> = {}
+   502→    if (statusChanged) body.status = status
+   503→    if (priorityChanged) body.priority = priority
+   504→    if (resolutionChanged) body.resolution = resolution
+   505→    if (assigneeChanged) body.assigneeId = assigneeId === '__none__' ? null : assigneeId
+   506→    try {
+   507→      await apiFetch(`/api/reports/${report.id}`, {
+   508→        method: 'PATCH',
+   509→        body: JSON.stringify(body),
+   510→      })
+   511→      toast.success('Perubahan disimpan')
+   512→      onUpdated()
+   513→    } catch (e) {
+   514→      const msg = e instanceof ApiError ? e.message : 'Gagal menyimpan'
+   515→      toast.error('Gagal menyimpan', { description: msg })
+   516→    } finally {
+   517→      setSubmitting(false)
+   518→    }
+   519→  }
+   520→
+   521→  return (
+   522→    <Card>
+   523→      <CardHeader className="pb-3">
+   524→        <CardTitle className="flex items-center gap-2 text-base">
+   525→          <Wrench className="size-4" />
+   526→          Panel Aksi
+   527→        </CardTitle>
+   528→        <CardDescription className="text-xs">
+   529→          Perbarui status, prioritas, resolusi, atau penugasan laporan
+   530→        </CardDescription>
+   531→      </CardHeader>
+   532→      <CardContent className="grid gap-4 px-4 sm:px-6 md:grid-cols-2">
+   533→        <div className="space-y-2">
+   534→          <Label htmlFor="status">Status</Label>
+   535→          <Select value={status} onValueChange={(v) => setStatus(v as ReportStatus)}>
+   536→            <SelectTrigger id="status" className="w-full">
+   537→              <SelectValue />
+   538→            </SelectTrigger>
+   539→            <SelectContent>
+   540→              {STATUS_LIST.map((s) => (
+   541→                <SelectItem key={s} value={s}>
+   542→                  <span className="inline-flex items-center gap-2">
+   543→                    <span
+   544→                      className={cn('size-1.5 rounded-full', STATUS_CONFIG[s].dot)}
+   545→                    />
+   546→                    {STATUS_CONFIG[s].label}
+   547→                  </span>
+   548→                </SelectItem>
+   549→              ))}
+   550→            </SelectContent>
+   551→          </Select>
+   552→        </div>
+   553→
+   554→        <div className="space-y-2">
+   555→          <Label htmlFor="priority">Prioritas</Label>
+   556→          <Select value={priority} onValueChange={(v) => setPriority(v as ReportPriority)}>
+   557→            <SelectTrigger id="priority" className="w-full">
+   558→              <SelectValue />
+   559→            </SelectTrigger>
+   560→            <SelectContent>
+   561→              {PRIORITY_LIST.map((p) => (
+   562→                <SelectItem key={p} value={p}>
+   563→                  {PRIORITY_CONFIG[p].label}
+   564→                </SelectItem>
+   565→              ))}
+   566→            </SelectContent>
+   567→          </Select>
+   568→        </div>
+   569→
+   570→        {canAssign && (
+   571→          <div className="space-y-2 md:col-span-2">
+   572→            <Label htmlFor="assignee">Penugasan Teknisi</Label>
+   573→            <Select value={assigneeId} onValueChange={(v) => setAssigneeId(v)}>
+   574→              <SelectTrigger id="assignee" className="w-full">
+   575→                <SelectValue placeholder="Pilih teknisi" />
+   576→              </SelectTrigger>
+   577→              <SelectContent>
+   578→                <SelectItem value="__none__">Tidak ditugaskan</SelectItem>
+   579→                {technicians?.map((t) => (
+   580→                  <SelectItem key={t.id} value={t.id}>
+   581→                    {t.name} ({ROLE_CONFIG[t.role as UserRole].label})
+   582→                  </SelectItem>
+   583→                ))}
+   584→              </SelectContent>
+   585→            </Select>
+   586→          </div>
+   587→        )}
+   588→
+   589→        <div className="space-y-2 md:col-span-2">
+   590→          <Label htmlFor="resolution">Resolusi</Label>
+   591→          <Textarea
+   592→            id="resolution"
+   593→            value={resolution}
+   594→            onChange={(e) => setResolution(e.target.value)}
+   595→            placeholder="Jelaskan langkah penyelesaian, temuan, atau catatan teknis…"
+   596→            rows={3}
+   597→          />
+   598→        </div>
+   599→
+   600→        <div className="md:col-span-2 flex items-center justify-between gap-2">
+   601→          <span className="text-muted-foreground text-xs">
+   602→            {hasChange ? 'Ada perubahan belum disimpan' : 'Tidak ada perubahan'}
+   603→          </span>
+   604→          <Button onClick={handleSave} disabled={!hasChange || submitting}>
+   605→            {submitting && <Loader2 className="size-4 animate-spin" />}
+   606→            Simpan Perubahan
+   607→          </Button>
+   608→        </div>
+   609→      </CardContent>
+   610→    </Card>
+   611→  )
+   612→}
+   613→
+   614→function OwnerEditPanel({
+   615→  report,
+   616→  onUpdated,
+   617→}: {
+   618→  report: ReportDetail
+   619→  onUpdated: () => void
+   620→}) {
+   621→  const [open, setOpen] = React.useState(false)
+   622→  const [title, setTitle] = React.useState(report.title)
+   623→  const [description, setDescription] = React.useState(report.description)
+   624→  const [submitting, setSubmitting] = React.useState(false)
+   625→
+   626→  React.useEffect(() => {
+   627→    setTitle(report.title)
+   628→    setDescription(report.description)
+   629→  }, [report.id, report.title, report.description])
+   630→
+   631→  const changed = title !== report.title || description !== report.description
+   632→
+   633→  async function handleSave() {
+   634→    setSubmitting(true)
+   635→    try {
+   636→      await apiFetch(`/api/reports/${report.id}`, {
+   637→        method: 'PATCH',
+   638→        body: JSON.stringify({ title, description }),
+   639→      })
+   640→      toast.success('Laporan diperbarui')
+   641→      onUpdated()
+   642→      setOpen(false)
+   643→    } catch (e) {
+   644→      const msg = e instanceof ApiError ? e.message : 'Gagal menyimpan'
+   645→      toast.error('Gagal menyimpan', { description: msg })
+   646→    } finally {
+   647→      setSubmitting(false)
+   648→    }
+   649→  }
+   650→
+   651→  return (
+   652→    <Dialog open={open} onOpenChange={setOpen}>
+   653→      <DialogTrigger asChild>
+   654→        <Button variant="outline" className="w-full justify-start">
+   655→          <Pencil className="size-4" />
+   656→          Edit laporan saya
+   657→        </Button>
+   658→      </DialogTrigger>
+   659→      <DialogContent>
+   660→        <DialogHeader>
+   661→          <DialogTitle>Edit Laporan</DialogTitle>
+   662→          <DialogDescription>
+   663→            Anda dapat mengedit judul dan deskripsi selama laporan masih berstatus PENDING.
+   664→          </DialogDescription>
+   665→        </DialogHeader>
+   666→        <div className="space-y-3">
+   667→          <div className="space-y-2">
+   668→            <Label htmlFor="edit-title">Judul</Label>
+   669→            <Input id="edit-title" value={title} onChange={(e) => setTitle(e.target.value)} />
+   670→          </div>
+   671→          <div className="space-y-2">
+   672→            <Label htmlFor="edit-desc">Deskripsi</Label>
+   673→            <Textarea
+   674→              id="edit-desc"
+   675→              rows={5}
+   676→              value={description}
+   677→              onChange={(e) => setDescription(e.target.value)}
+   678→            />
+   679→          </div>
+   680→        </div>
+   681→        <DialogFooter>
+   682→          <Button variant="outline" onClick={() => setOpen(false)}>
+   683→            Batal
+   684→          </Button>
+   685→          <Button onClick={handleSave} disabled={!changed || submitting}>
+   686→            {submitting && <Loader2 className="size-4 animate-spin" />}
+   687→            Simpan
+   688→          </Button>
+   689→        </DialogFooter>
+   690→      </DialogContent>
+   691→    </Dialog>
+   692→  )
+   693→}
+   694→
+   695→function CommentComposer({
+   696→  reportId,
+   697→  onCommented,
+   698→}: {
+   699→  reportId: string
+   700→  onCommented: () => void
+   701→}) {
+   702→  const [message, setMessage] = React.useState('')
+   703→  const [submitting, setSubmitting] = React.useState(false)
+   704→
+   705→  async function handleSend() {
+   706→    const text = message.trim()
+   707→    if (!text) return
+   708→    setSubmitting(true)
+   709→    try {
+   710→      await apiFetch(`/api/reports/${reportId}/comments`, {
+   711→        method: 'POST',
+   712→        body: JSON.stringify({ message: text }),
+   713→      })
+   714→      setMessage('')
+   715→      toast.success('Komentar ditambahkan')
+   716→      onCommented()
+   717→    } catch (e) {
+   718→      const msg = e instanceof ApiError ? e.message : 'Gagal menambah komentar'
+   719→      toast.error('Gagal menambah komentar', { description: msg })
+   720→    } finally {
+   721→      setSubmitting(false)
+   722→    }
+   723→  }
+   724→
+   725→  return (
+   726→    <Card>
+   727→      <CardHeader className="pb-3">
+   728→        <CardTitle className="flex items-center gap-2 text-base">
+   729→          <MessageSquare className="size-4" />
+   730→          Tambah Komentar
+   731→        </CardTitle>
+   732→      </CardHeader>
+   733→      <CardContent className="space-y-3 px-4 sm:px-6">
+   734→        <Textarea
+   735→          value={message}
+   736→          onChange={(e) => setMessage(e.target.value)}
+   737→          placeholder="Tulis komentar atau update singkat untuk laporan ini…"
+   738→          rows={3}
+   739→          onKeyDown={(e) => {
+   740→            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+   741→              handleSend()
+   742→            }
+   743→          }}
+   744→        />
+   745→        <div className="flex items-center justify-between gap-2">
+   746→          <span className="text-muted-foreground text-[11px]">
+   747→            Tekan Cmd/Ctrl + Enter untuk kirim cepat
+   748→          </span>
+   749→          <Button onClick={handleSend} disabled={!message.trim() || submitting}>
+   750→            {submitting ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
+   751→            Kirim Komentar
+   752→          </Button>
+   753→        </div>
+   754→      </CardContent>
+   755→    </Card>
+   756→  )
+   757→}
+   758→
+   759→function DeleteReportButton({
+   760→  reportId,
+   761→  onDeleted,
+   762→}: {
+   763→  reportId: string
+   764→  onDeleted: () => void
+   765→}) {
+   766→  const [open, setOpen] = React.useState(false)
+   767→  const [submitting, setSubmitting] = React.useState(false)
+   768→
+   769→  async function handleDelete() {
+   770→    setSubmitting(true)
+   771→    try {
+   772→      await apiFetch(`/api/reports/${reportId}`, { method: 'DELETE', skipJson: true })
+   773→      toast.success('Laporan dihapus')
+   774→      onDeleted()
+   775→    } catch (e) {
+   776→      const msg = e instanceof ApiError ? e.message : 'Gagal menghapus'
+   777→      toast.error('Gagal menghapus', { description: msg })
+   778→    } finally {
+   779→      setSubmitting(false)
+   780→    }
+   781→  }
+   782→
+   783→  return (
+   784→    <AlertDialog open={open} onOpenChange={setOpen}>
+   785→      <AlertDialogTrigger asChild>
+   786→        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+   787→          <Trash2 className="size-4" />
+   788→          Hapus
+   789→        </Button>
+   790→      </AlertDialogTrigger>
+   791→      <AlertDialogContent>
+   792→        <AlertDialogHeader>
+   793→          <AlertDialogTitle>Hapus laporan ini?</AlertDialogTitle>
+   794→          <AlertDialogDescription>
+   795→            Tindakan ini tidak dapat dibatalkan. Seluruh riwayat aktivitas juga akan terhapus.
+   796→          </AlertDialogDescription>
+   797→        </AlertDialogHeader>
+   798→        <AlertDialogFooter>
+   799→          <AlertDialogCancel>Batal</AlertDialogCancel>
+   800→          <AlertDialogAction
+   801→            onClick={handleDelete}
+   802→            disabled={submitting}
+   803→            className="bg-destructive text-white hover:bg-destructive/90"
+   804→          >
+   805→            {submitting && <Loader2 className="size-4 animate-spin" />}
+   806→            Hapus Laporan
+   807→          </AlertDialogAction>
+   808→        </AlertDialogFooter>
+   809→      </AlertDialogContent>
+   810→    </AlertDialog>
+   811→  )
+   812→}
+   813→
+   814→function DetailSkeleton() {
+   815→  return (
+   816→    <div className="space-y-4">
+   817→      <Skeleton className="h-5 w-40" />
+   818→      <Skeleton className="h-48 w-full" />
+   819→      <Skeleton className="h-40 w-full" />
+   820→      <Skeleton className="h-64 w-full" />
+   821→    </div>
+   822→  )
+   823→}
+   824→
